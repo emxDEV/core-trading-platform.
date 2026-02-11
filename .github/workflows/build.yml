@@ -13,23 +13,29 @@ jobs:
       contents: write
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: source
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: source/package-lock.json
 
       - name: Install Dependencies
+        working-directory: source
         run: npm install
 
       - name: Build and Publish
+        working-directory: source
         run: npm run electron:build -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
