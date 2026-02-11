@@ -53,7 +53,7 @@
     "publish": {
       "provider": "github",
       "owner": "emxDEV",
-      "repo": "core-trading-platform"
+      "repo": "core-trading-platform."
     },
     "appId": "com.core.trading",
     "productName": "CORE",
