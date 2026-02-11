@@ -26,8 +26,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          git clone https://github.com/emxDEV/core-trading-platform..git $GITHUB_WORKSPACE/../build-source
-          cd $GITHUB_WORKSPACE/../build-source
+          mkdir -p /d/build-source
+          cd /d/build-source
+          git clone https://github.com/emxDEV/core-trading-platform..git .
           git checkout ${{ github.sha }}
 
       - name: Setup Node
@@ -36,12 +37,22 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        working-directory: ${{ runner.os == 'Windows' && '../build-source' || '.' }}
-        run: npm install
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cd /d/build-source && npm install
+          else
+            npm install
+          fi
+        shell: bash
 
       - name: Build and Publish
-        working-directory: ${{ runner.os == 'Windows' && '../build-source' || '.' }}
-        run: npm run electron:build -- --publish always
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cd /d/build-source && npm run electron:build -- --publish always
+          else
+            npm run electron:build -- --publish always
+          fi
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
