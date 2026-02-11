@@ -18,24 +18,32 @@ jobs:
         os: [macos-latest, windows-latest]
 
     steps:
-      - name: Checkout
+      - name: Checkout (Mac)
+        if: runner.os == 'macOS'
         uses: actions/checkout@v4
-        with:
-          path: source
+
+      - name: Checkout (Windows Bypass)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p /c/build-source
+          cd /c/build-source
+          git clone https://github.com/emxDEV/core-trading-platform..git .
+          git checkout ${{ github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: source/package-lock.json
+          cache-dependency-path: ${{ runner.os == 'Windows' && '/c/build-source/package-lock.json' || 'package-lock.json' }}
 
       - name: Install Dependencies
-        working-directory: source
+        working-directory: ${{ runner.os == 'Windows' && '/c/build-source' || '.' }}
         run: npm install
 
       - name: Build and Publish
-        working-directory: source
+        working-directory: ${{ runner.os == 'Windows' && '/c/build-source' || '.' }}
         run: npm run electron:build -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
