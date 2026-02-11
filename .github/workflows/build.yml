@@ -9,9 +9,9 @@ jobs:
   release:
     runs-on: ${{ matrix.os }}
     
-    # Add permissions to allow the build to create a Release
     permissions:
       contents: write
+      pull-requests: write
 
     strategy:
       matrix:
@@ -19,31 +19,20 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install Dependencies
-        run: npm ci
-
-      - name: Generate ICO (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          magick convert public/coreLogo.png -define icon:auto-resize=256,128,64,48,32,16 public/icon.ico
+        run: npm install
 
       - name: Build/Release Electron App
         uses: samuelmeuli/action-electron-builder@v1
         with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
           release: true
         env:
-          # macOS code signing (disable via identity null in package.json, but also here as var just in case)
           CSC_IDENTITY_AUTO_DISCOVERY: false
