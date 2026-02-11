@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { COUNTRIES } from '../constants/countries';
+import { useAuth } from '../context/AuthContext';
 
 const STEPS = [
     { id: 'identity', title: 'Identity', icon: 'badge', subtitle: 'Who are you, Operator?' },
@@ -11,6 +12,7 @@ const STEPS = [
 ];
 
 export default function OnboardingWizard({ onComplete }) {
+    const { signOut } = useAuth();
     const [step, setStep] = useState(0);
     const [data, setData] = useState({
         name: '',
@@ -103,6 +105,17 @@ export default function OnboardingWizard({ onComplete }) {
                     `,
                     backgroundSize: '60px 60px'
                 }} />
+            </div>
+
+            {/* Logout Button - Fixed and no-drag to ensure it's clickable in Electron */}
+            <div className="fixed top-8 right-8 z-[100]" style={{ WebkitAppRegion: 'no-drag' }}>
+                <button
+                    onClick={() => signOut()}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-background-light/10 hover:bg-background-light/20 backdrop-blur-md border border-white/10 rounded-xl text-[10px] text-white font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-2xl"
+                >
+                    <span className="material-symbols-outlined text-sm">logout</span>
+                    Sign Out
+                </button>
             </div>
 
             <div className="relative z-10 w-full max-w-2xl mx-4" style={{ WebkitAppRegion: 'no-drag' }}>

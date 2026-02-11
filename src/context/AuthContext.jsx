@@ -30,6 +30,65 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe();
     }, []);
 
+    // Handle Deep Links (Google Auth)
+    useEffect(() => {
+        const handleDeepLink = async (url) => {
+            try {
+                let code = null;
+
+                // 1. Try modern PKCE Code
+                if (url.includes('code=')) {
+                    const codePart = url.split('code=')[1];
+                    code = codePart ? codePart.split('&')[0].split('#')[0] : null;
+                }
+
+                if (code) {
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (error) throw error;
+                    return;
+                }
+
+                // 2. Try Implicit Flow (Token in Hash)
+                if (url.includes('#access_token=')) {
+                    const hash = url.split('#')[1];
+                    const params = new URLSearchParams(hash);
+                    const access_token = params.get('access_token');
+                    const refresh_token = params.get('refresh_token');
+
+                    if (access_token && refresh_token) {
+                        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+                        if (error) throw error;
+                    }
+                }
+            } catch (err) {
+                console.error('Deep link auth error:', err.message || err);
+            }
+        };
+
+        if (window.electron?.ipcRenderer) {
+            window.electron.ipcRenderer.on('deep-link', handleDeepLink);
+        }
+    }, []);
+
+    const signInWithGoogle = async () => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: 'core-app://auth/callback',
+                skipBrowserRedirect: true,
+                queryParams: {
+                    prompt: 'select_account'
+                }
+            }
+        });
+
+        if (data?.url && window.electron?.ipcRenderer) {
+            window.electron.ipcRenderer.send('open-external-url', data.url);
+        }
+
+        return { data, error };
+    };
+
     const signUp = async (email, password, displayName) => {
         const { data, error } = await supabase.auth.signUp({
             email,
@@ -50,12 +109,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     const signOut = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (!error) {
-            setUser(null);
-            setSession(null);
+        // Always clear local state immediately for instant UI response
+        setUser(null);
+        setSession(null);
+
+        try {
+            const { error } = await supabase.auth.signOut();
+            return { error };
+        } catch (err) {
+            console.error('Sign out error:', err);
+            return { error: err };
         }
-        return { error };
     };
 
     const updateEmail = async (newEmail) => {
@@ -108,6 +172,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         updateEmail,
         updatePassword,

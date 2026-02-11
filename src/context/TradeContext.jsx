@@ -198,7 +198,16 @@ export const TradeProvider = ({ children }) => {
         if (!user) return;
 
         const profileKey = `userProfile_${user.id}`;
-        const savedProfile = localStorage.getItem(profileKey);
+        let savedProfile = localStorage.getItem(profileKey);
+
+        // Fallback to legacy key if specific not found
+        if (!savedProfile) {
+            savedProfile = localStorage.getItem('userProfile');
+            if (savedProfile) {
+                // Migrate to new key
+                localStorage.setItem(profileKey, savedProfile);
+            }
+        }
 
         if (savedProfile) {
             try {

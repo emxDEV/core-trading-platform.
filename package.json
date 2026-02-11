@@ -1,7 +1,7 @@
 {
   "name": "core",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": "User",
   "type": "module",
   "main": "electron/main.cjs",
@@ -47,7 +47,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/emxDEV/core-trading-platform..git"
+    "url": "https://github.com/emxDEV/core-trading-platform.git"
   },
   "build": {
     "publish": {
@@ -72,7 +72,16 @@
       ],
       "identity": null,
       "icon": "public/icon.icns",
-      "category": "public.app-category.finance"
+      "category": "public.app-category.finance",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "core-app"
+            ]
+          }
+        ]
+      }
     },
     "win": {
       "target": "nsis",

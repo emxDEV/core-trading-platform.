@@ -10,7 +10,19 @@ export default function AuthPage() {
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const { signIn, signUp } = useAuth();
+    const { signIn, signUp, signInWithGoogle } = useAuth();
+
+    const handleGoogleLogin = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const { error } = await signInWithGoogle();
+            if (error) throw error;
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -194,6 +206,25 @@ export default function AuthPage() {
                             )}
                         </button>
                     </form>
+
+                    <div className="relative my-8">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/10"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-4 bg-[#1A1D26] text-[10px] text-slate-500 font-bold uppercase tracking-widest">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-xs font-black uppercase tracking-[0.1em] hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3"
+                    >
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                        Google
+                    </button>
 
                     {/* Footer */}
                     <div className="mt-8 pt-6 border-t border-white/5 text-center">

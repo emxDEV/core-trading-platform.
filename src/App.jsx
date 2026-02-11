@@ -15,6 +15,7 @@ import UpgradeModal from './components/UpgradeModal';
 import AuthPage from './components/AuthPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import AppTutorial from './components/AppTutorial';
+import LoadingScreen from './components/LoadingScreen';
 
 import Calendar from './components/Calendar';
 import TitleBar from './components/TitleBar';
@@ -66,15 +67,22 @@ function AuthGate() {
 
   useEffect(() => {
     if (user) {
-      const onboardingDone = localStorage.getItem(`onboarding_complete_${user.id}`);
+      const hasSpecificProfile = localStorage.getItem(`userProfile_${user.id}`);
+      const onboardingFlag = localStorage.getItem(`onboarding_complete_${user.id}`);
+
+      // ONLY consider it done if the SPECIFIC user has finished it
+      // Ignore legacy global 'userProfile' for the setup decision to ensure new accounts get the wizard
+      const onboardingDone = onboardingFlag === 'true' || !!hasSpecificProfile;
+
       const tutorialDone = localStorage.getItem(`tutorial_complete_${user.id}`);
+
       setNeedsOnboarding(!onboardingDone);
       setNeedsTutorial(!onboardingDone || !tutorialDone);
       setOnboardingChecked(true);
 
       // Get profile name for tutorial greeting
       try {
-        const saved = localStorage.getItem('userProfile');
+        const saved = hasSpecificProfile || localStorage.getItem('userProfile');
         if (saved) setProfileName(JSON.parse(saved).name || '');
       } catch (e) { }
     } else {
@@ -84,18 +92,9 @@ function AuthGate() {
     }
   }, [user]);
 
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background-dark flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-2xl shadow-primary/30 animate-pulse">
-            <span className="material-symbols-outlined text-white text-[32px]">monitoring</span>
-          </div>
-          <div className="w-6 h-6 mx-auto border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]">Initializing</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -110,7 +109,8 @@ function AuthGate() {
     return (
       <OnboardingWizard
         onComplete={(profile) => {
-          localStorage.setItem('userProfile', JSON.stringify(profile));
+          localStorage.setItem(`userProfile_${user.id}`, JSON.stringify(profile));
+          localStorage.setItem('userProfile', JSON.stringify(profile)); // Backup for legacy
           localStorage.setItem(`onboarding_complete_${user.id}`, 'true');
           setProfileName(profile.name || '');
           setNeedsOnboarding(false);
