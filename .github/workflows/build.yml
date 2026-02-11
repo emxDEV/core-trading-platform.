@@ -11,28 +11,26 @@ jobs:
     
     permissions:
       contents: write
-      pull-requests: write
 
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
 
     steps:
-      - name: Check out Git repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Build/Release Electron App
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: true
+      - name: Build and Publish
+        run: npm run electron:build -- --publish always
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
