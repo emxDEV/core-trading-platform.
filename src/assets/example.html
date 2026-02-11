@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trading Journal Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7c5dfa","background-light": "#f8f7ff",
+                        "background-dark": "#100e1a",
+                        "surface-dark": "#1e1b2e"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.4rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-display antialiased;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(124, 93, 250, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 93, 250, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark flex flex-col">
+<div class="p-8">
+<div class="flex items-center gap-3">
+<div class="text-primary">
+<svg class="transform -rotate-12" fill="none" height="32" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="32">
+<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.71-2.13.71-2.13l-1.58-1.58s-1.29 0-2.13.71Z"></path>
+<path d="M12 15l-3-3"></path>
+<path d="M17.07 12.12c1.74-1.74 2.5-4.44 2.43-6.19a.5.5 0 0 0-.57-.44c-1.75-.07-4.45.69-6.19 2.43-1.74 1.74-2.13 4.84-2.13 4.84l3.05 3.05s3.1-.39 4.84-2.13Z"></path>
+<path d="m10 10-3 3c-.56.56-1.5.5-2.2-.2s-.76-1.64-.2-2.2l3-3"></path>
+<path d="m14 14 3 3c.56.56 1.5.5 2.2-.2s.76-1.64.2-2.2l-3-3"></path>
+</svg>
+</div>
+<span class="font-bold text-xl tracking-tight text-slate-800 dark:text-white">TradeLog</span>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold group" href="#">
+<span class="material-symbols-outlined text-[22px]">space_dashboard</span>
+<span>Journal</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">analytics</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">calendar_month</span>
+<span>Calendar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="p-6 mt-auto border-t border-slate-100 dark:border-slate-800/60">
+<div class="flex items-center gap-3">
+<img alt="User profile avatar" class="w-9 h-9 rounded-full border-2 border-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU5qbxeGZ1q28nET6V7_0hQ4NxoH7ud3tqcYDgp50RVdhrWsKMQ-nfmoPpypW9CovWtV4x_lsU7cH6JTocjzbiQd-pCplppt1p8_U3OZofiYP_PbnYuJqoSsSyVkhTy0L0aS5QDQCxFYMo4nDBwT_sC42NgRYVFmicT5HIEtL2k1tTOBNwxJMhTxkTbL1JlyEze52t2DVfFeCgVE0AmzHGfVTRNYDq3l8HKz41Kgw3ilX39_5Q9fYqC1dpEqRqIZFXaItdbIomvGLr"/>
+<div class="flex flex-col">
+<span class="text-xs font-bold">Alex Rivera</span>
+<span class="text-[10px] text-primary font-medium">Pro Trader</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden">
+<header class="h-20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 bg-white dark:bg-background-dark/50 backdrop-blur-sm">
+<h1 class="text-xl font-bold text-slate-800 dark:text-white">Overview</h1>
+<div class="flex items-center gap-6">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-opacity-90 hover:shadow-lg hover:shadow-primary/20 transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Trade
+                </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-10 custom-scrollbar space-y-10">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Win Rate</span>
+<span class="text-emerald-500 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">+2.4%</span>
+</div>
+<div class="flex items-end gap-3">
+<span class="text-4xl font-bold tracking-tight">64.8%</span>
+<div class="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2">
+<div class="h-full bg-primary" style="width: 64.8%"></div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-sm font-semibold text-slate-400 uppercase tracking-wider">P/L (MTD)</span>
+<span class="text-emerald-500 material-symbols-outlined">trending_up</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="text-4xl font-bold tracking-tight text-emerald-500">+$4,250.00</span>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Total Trades</span>
+<span class="text-slate-400 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">30 DAYS</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="text-4xl font-bold tracking-tight">128</span>
+<span class="text-sm font-medium text-slate-400 ml-2">executions</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<h2 class="font-bold text-lg">Recent Trades</h2>
+<button class="text-sm text-primary font-bold hover:underline transition-all underline-offset-4">View All Activity</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[11px] uppercase tracking-[0.1em] text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800/60">
+<th class="px-8 py-5">Date</th>
+<th class="px-8 py-5">Symbol</th>
+<th class="px-8 py-5">Setup</th>
+<th class="px-8 py-5">Side</th>
+<th class="px-8 py-5 text-right">Net P&amp;L</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 dark:divide-slate-800/40">
+<tr class="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+<td class="px-8 py-6">
+<span class="text-sm font-medium">Oct 24, 2023</span>
+</td>
+<td class="px-8 py-6">
+<span class="font-bold text-slate-800 dark:text-slate-100">BTC/USDT</span>
+</td>
+<td class="px-8 py-6">
+<span class="text-[11px] font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">Mean Reversion</span>
+</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-500">LONG</span>
+</td>
+<td class="px-8 py-6 text-right font-black text-emerald-500">
+                                    +$1,240.00
+                                </td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+<td class="px-8 py-6 text-sm font-medium">Oct 23, 2023</td>
+<td class="px-8 py-6 font-bold text-slate-800 dark:text-slate-100">AAPL</td>
+<td class="px-8 py-6">
+<span class="text-[11px] font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">Breakout</span>
+</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-black bg-rose-500/10 text-rose-500">SHORT</span>
+</td>
+<td class="px-8 py-6 text-right font-black text-rose-500">
+                                    -$420.00
+                                </td>
+</tr>
+<tr class="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+<td class="px-8 py-6 text-sm font-medium">Oct 22, 2023</td>
+<td class="px-8 py-6 font-bold text-slate-800 dark:text-slate-100">TSLA</td>
+<td class="px-8 py-6">
+<span class="text-[11px] font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">VWAP Bounce</span>
+</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-500">LONG</span>
+</td>
+<td class="px-8 py-6 text-right font-black text-emerald-500">
+                                    +$845.50
+                                </td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 py-5 bg-slate-50/30 dark:bg-white/5 border-t border-slate-100 dark:border-slate-800 text-center">
+<button class="text-sm font-bold text-slate-400 hover:text-primary transition-colors uppercase tracking-widest">
+                        Load History
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
+<div class="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">P&amp;L Curve</h3>
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary/30"></div>
+</div>
+</div>
+<div class="relative h-48 w-full flex items-end justify-between px-2">
+<div class="w-8 bg-primary/20 rounded-t-lg h-[20%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/25 rounded-t-lg h-[35%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/30 rounded-t-lg h-[30%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/40 rounded-t-lg h-[55%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/50 rounded-t-lg h-[45%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/70 rounded-t-lg h-[75%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary/80 rounded-t-lg h-[65%] transition-all hover:bg-primary/40"></div>
+<div class="w-8 bg-primary rounded-t-lg h-[90%] transition-all hover:bg-primary/100"></div>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-8">Top Strategies</h3>
+<div class="space-y-8">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-bold">Breakout Rejection</span>
+<span class="text-sm font-black text-emerald-500">72%</span>
+</div>
+<div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full">
+<div class="h-full bg-primary rounded-full" style="width: 72%"></div>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-bold">Volume Scalping</span>
+<span class="text-sm font-black text-emerald-500">61%</span>
+</div>
+<div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full">
+<div class="h-full bg-primary rounded-full" style="width: 61%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
