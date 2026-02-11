@@ -8,6 +8,10 @@ on:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
+    
+    # Add permissions to allow the build to create a Release
+    permissions:
+      contents: write
 
     strategy:
       matrix:
