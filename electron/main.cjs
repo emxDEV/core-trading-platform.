@@ -97,8 +97,16 @@ ipcMain.handle('supabase-proxy', async (event, { url, options }) => {
         return { error: error.message };
     }
 });
-
-// Configure Auto Updater
+// Manual Update Trigger
+ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) return { success: false, message: 'Not available in development mode' };
+    try {
+        const result = await autoUpdater.checkForUpdatesAndNotify();
+        return { success: true, updateInfo: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 

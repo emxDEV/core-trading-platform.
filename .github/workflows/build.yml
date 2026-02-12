@@ -55,4 +55,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://txzbruiseihlnphuisuc.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4emJydWlzZWlobG5waHVpc3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjA1MjYsImV4cCI6MjA4NjMzNjUyNn0.hanut-gLuzrevdU9wUFBG7p64k-Ff4osm-aDCF74Ves' }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

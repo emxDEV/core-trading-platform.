@@ -471,13 +471,22 @@ export default function Settings() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black dark:text-white uppercase tracking-widest mb-1">Protocol Version</p>
-                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.0.4-stable</p>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.0.7-stable</p>
                                 </div>
                             </div>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     showInfo("Checking for protocol updates...");
-                                    setTimeout(() => showSuccess("You are running the latest stable build."), 2000);
+                                    if (window.electron) {
+                                        const result = await window.electron.ipcRenderer.invoke('check-for-updates');
+                                        if (result.success) {
+                                            showSuccess("Checking initiated. You will be notified if a patch is found.");
+                                        } else {
+                                            showInfo(result.message || "Update check failed.");
+                                        }
+                                    } else {
+                                        setTimeout(() => showSuccess("You are running the latest stable build."), 2000);
+                                    }
                                 }}
                                 className="px-5 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm"
                             >

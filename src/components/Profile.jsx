@@ -369,7 +369,7 @@ export default function Profile() {
                                         <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
                                         <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 italic font-mono">Combat Readiness</span>
                                     </div>
-                                    <div className="px-3 py-1 bg-white/5 border border-white/10 text-[8px] font-black text-primary font-mono rounded shadow-inner">v1.0.6</div>
+                                    <div className="px-3 py-1 bg-white/5 border border-white/10 text-[8px] font-black text-primary font-mono rounded shadow-inner">v1.0.7</div>
                                 </div>
                                 <div className="flex items-center gap-7">
                                     <div className={`w-24 h-24 rounded-[2rem] ${tacticalGrade.bg} flex items-center justify-center border border-white/20 shadow-2xl relative group/tier overflow-hidden`}>
