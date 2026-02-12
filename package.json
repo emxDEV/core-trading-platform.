@@ -1,7 +1,7 @@
 {
   "name": "core",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "author": "User",
   "type": "module",
   "main": "electron/main.cjs",
@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "electron": "wait-on tcp:5173 && electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"npm run electron\"",
+    "electron:dev:2": "electron . --profile=secondary",
     "electron:build": "vite build && electron-builder",
     "rebuild": "electron-rebuild -f -w better-sqlite3"
   },

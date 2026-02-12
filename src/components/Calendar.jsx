@@ -21,7 +21,7 @@ const COLOR_MAP = {
 };
 
 export default function Calendar() {
-    const { filteredTrades, accounts, getPillColor, openModal } = useData();
+    const { filteredTrades, accounts, getPillColor, openModal, dailyJournals, saveDailyJournal, setIsDailyJournalOpen } = useData();
 
     const [selectedDate, setSelectedDate] = useState(null);
 
@@ -46,6 +46,19 @@ export default function Calendar() {
         const day = dailyData.find(d => d.date === dateStr);
         return day ? day.trades : [];
     }, [selectedDate, dailyData]);
+
+    const selectedDayJournal = useMemo(() => {
+        if (!selectedDate) return null;
+        const dateStr = toLocalDateString(selectedDate);
+        const journal = dailyJournals.find(j => j.date === dateStr);
+        if (journal) {
+            return {
+                ...journal,
+                goals: typeof journal.goals === 'string' ? JSON.parse(journal.goals) : (journal.goals || [])
+            };
+        }
+        return null;
+    }, [selectedDate, dailyJournals]);
 
     const formatCurrency = (val) => {
         return new Intl.NumberFormat('en-US', {
@@ -108,11 +121,89 @@ export default function Calendar() {
                 {/* Right: Day Detail */}
                 <div className="flex flex-col space-y-6 min-h-0">
                     <div className="bg-[#0f111a]/50 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-sm flex-1 flex flex-col min-h-0">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-xl">event_available</span>
-                                {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select a day'}
-                            </h3>
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-2 uppercase italic">
+                                    <span className="material-symbols-outlined text-primary text-2xl">event_note</span>
+                                    {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'Select Day'}
+                                </h3>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Operational Summary</p>
+                            </div>
+                            {selectedDate && (
+                                <div className="flex gap-2">
+                                    <Badge
+                                        label={selectedDayJournal?.is_completed ? 'Protocol Closed' : 'Protocol Open'}
+                                        bg={selectedDayJournal?.is_completed ? 'bg-emerald-500/10' : 'bg-primary/10'}
+                                        color={selectedDayJournal?.is_completed ? 'text-emerald-500' : 'text-primary'}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Daily Journal / Protocol Section */}
+                        {selectedDate && (
+                            <div className="mb-10 space-y-6">
+                                <div className="bg-[#0f111a]/40 border border-white/5 rounded-[2rem] p-6 group hover:border-primary/20 transition-all">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-primary text-lg">description</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operational Journal</span>
+                                        </div>
+                                        {selectedDayJournal && (
+                                            <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg">
+                                                {selectedDayJournal.goals.filter(g => g.completed).length} / {selectedDayJournal.goals.length} Goals
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {selectedDayJournal ? (
+                                        <div className="space-y-4">
+                                            <p className="text-sm text-slate-400 italic font-medium leading-relaxed line-clamp-3">
+                                                "{selectedDayJournal.reflection || "No reflection logged for this cycle."}"
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const dateStr = toLocalDateString(selectedDate);
+                                                        setIsDailyJournalOpen(dateStr);
+                                                    }}
+                                                    className="text-[9px] font-black text-primary uppercase tracking-widest hover:text-white transition-colors"
+                                                >
+                                                    View Full Log ➤
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="py-4 text-center">
+                                            <p className="text-xs font-black text-slate-600 uppercase tracking-widest italic mb-3">No protocol logged for this date</p>
+                                            <button
+                                                onClick={() => {
+                                                    const dateStr = toLocalDateString(selectedDate);
+                                                    saveDailyJournal({
+                                                        date: dateStr,
+                                                        goals: [
+                                                            { id: 1, text: "Execute according to plan", completed: false },
+                                                            { id: 2, text: "Wait for High Probability setup", completed: false },
+                                                            { id: 3, text: "Control emotions post-trade", completed: false }
+                                                        ],
+                                                        reflection: '',
+                                                        is_completed: false
+                                                    });
+                                                    setIsDailyJournalOpen(dateStr);
+                                                }}
+                                                className="px-6 py-2.5 bg-primary/10 border border-primary/20 text-primary text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-all"
+                                            >
+                                                Initialize Protocol
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-3 mb-6">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Operational Results</h4>
+                            <div className="h-px flex-1 bg-white/5" />
                         </div>
 
                         {selectedDayTrades.length > 0 ? (
@@ -244,6 +335,13 @@ export default function Calendar() {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+function Badge({ label, bg, color }) {
+    return (
+        <div className={`px-4 py-1.5 rounded-xl ${bg} border border-white/5 text-[9px] font-black ${color} uppercase tracking-widest`}>
+            {label}
         </div>
     );
 }

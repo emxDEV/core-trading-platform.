@@ -1,152 +1,114 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../context/TradeContext';
-import { useNotifications } from '../context/NotificationContext';
+import { createPortal } from 'react-dom';
+import { useAuth } from '../context/AuthContext';
+
 import { COUNTRIES } from '../constants/countries';
 
-export default function Profile() {
-    const { userProfile, updateUserProfile, stats, accounts, activeTrades, ranks } = useData();
-    const { showSuccess, showInfo, showError } = useNotifications();
+// Observer System to prevent UI elements from being cut off
+const useBoundaryObserver = (coords, padding = 16) => {
+    const [adjustedStyles, setAdjustedStyles] = useState({
+        position: 'fixed',
+        top: coords?.y || 0,
+        left: coords?.x || 0,
+        opacity: 0,
+        pointerEvents: 'none',
+        zIndex: 99999,
+    });
+    const ref = useRef(null);
 
+    React.useLayoutEffect(() => {
+        if (!coords || !ref.current) return;
+
+        const element = ref.current;
+        const rect = element.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        let { x, y } = coords;
+        let finalX = x;
+        let finalY = y;
+
+        if (x + rect.width > viewportWidth - padding) {
+            finalX = viewportWidth - rect.width - padding;
+        }
+        if (finalX < padding) finalX = padding;
+
+        if (y + rect.height > viewportHeight - padding) {
+            finalY = viewportHeight - rect.height - padding;
+        }
+        if (finalY < padding) finalY = padding;
+
+        setAdjustedStyles({
+            position: 'fixed',
+            top: finalY,
+            left: finalX,
+            opacity: 1,
+            zIndex: 99999,
+            pointerEvents: 'auto',
+            transition: 'opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transform: 'scale(1)',
+            transformOrigin: 'top left'
+        });
+    }, [coords, padding]);
+
+    return { ref, style: adjustedStyles };
+};
+
+const SmartPortal = ({ coords, children, padding = 16, className = "" }) => {
+    const { ref, style } = useBoundaryObserver(coords, padding);
+    return createPortal(
+        <div ref={ref} style={style} className={className} onMouseDown={e => e.stopPropagation()}>
+            {children}
+        </div>,
+        document.body
+    );
+};
+
+export default function Profile() {
+    const {
+        userProfile,
+        updateUserProfile,
+        stats,
+        ranks,
+        activeTrades,
+        accounts,
+        friends,
+        friendRequests,
+        sendFriendRequest,
+        acceptFriendRequest,
+        syncProfileToCloud,
+        supabase
+    } = useData();
+    const { user } = useAuth();
     const fileInputRef = useRef(null);
 
     const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState('identity');
     const [editData, setEditData] = useState({ ...userProfile });
     const [newGoalText, setNewGoalText] = useState('');
+    const [contextMenu, setContextMenu] = useState(null);
 
-    const currentRank = stats.rank || ranks[0];
-    const nextRank = ranks.find(r => r.level === currentRank.level + 1);
+    // Close context menu on outside click
+    useEffect(() => {
+        const handleOutsideClick = () => setContextMenu(null);
+        window.addEventListener('mousedown', handleOutsideClick);
+        return () => window.removeEventListener('mousedown', handleOutsideClick);
+    }, []);
 
-    const xpProgress = useMemo(() => {
-        if (!nextRank) return 100;
-        const range = nextRank.minXp - currentRank.minXp;
-        const currentProgress = stats.xp - currentRank.minXp;
-        return Math.min(100, Math.max(0, (currentProgress / range) * 100));
-    }, [stats.xp, currentRank, nextRank]);
-
-    // ── Mastery Matrix (calculated from real trade data) ──
-    const masteryScores = useMemo(() => {
-        const trades = activeTrades;
-        if (!trades.length) return { strategyConsistency: 0, riskNeutralization: 0, emotionalStability: 0, positionSizing: 0 };
-
-        // Strategy Consistency: how often you use your top entry signal
-        const signalCounts = {};
-        trades.forEach(t => {
-            const signal = (t.entry_signal || '').trim();
-            if (signal) signalCounts[signal] = (signalCounts[signal] || 0) + 1;
+    const onContextMenu = (e, friend) => {
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            friend
         });
-        const tradesWithSignal = trades.filter(t => (t.entry_signal || '').trim()).length;
-        const topSignalCount = Math.max(0, ...Object.values(signalCounts));
-        const strategyConsistency = tradesWithSignal > 0
-            ? Math.round((topSignalCount / tradesWithSignal) * 100)
-            : 0;
-
-        // Risk Neutralization: % of trades with SL set
-        const tradesWithSL = trades.filter(t => t.sl_pips && parseFloat(t.sl_pips) > 0).length;
-        const riskNeutralization = Math.round((tradesWithSL / trades.length) * 100);
-
-        // Emotional Stability: 100% minus penalty for bad psychology notes
-        const negativeKeywords = ['revenge', 'fomo', 'overtrad', 'tilt', 'impuls', 'emotional', 'fear', 'greed', 'frustrat'];
-        const badTrades = trades.filter(t => {
-            const psych = (t.psychology || '').toLowerCase();
-            return negativeKeywords.some(kw => psych.includes(kw));
-        }).length;
-        const emotionalStability = Math.max(0, Math.round(100 - (badTrades / trades.length) * 150));
-
-        // Position Sizing: % of trades with risk_percent defined
-        const tradesWithRisk = trades.filter(t => t.risk_percent && parseFloat(t.risk_percent) > 0).length;
-        const positionSizing = Math.round((tradesWithRisk / trades.length) * 100);
-
-        return { strategyConsistency, riskNeutralization, emotionalStability, positionSizing };
-    }, [activeTrades]);
-
-    // ── Tactical Grade (derived from mastery + performance) ──
-    const tacticalGrade = useMemo(() => {
-        const trades = activeTrades;
-        const winRate = trades.length ? (trades.filter(t => t.pnl > 0).length / trades.length) * 100 : 0;
-        const totalPnL = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-        const fundedCount = accounts.filter(a => a.type === 'Funded').length;
-
-        // Execution Grade based on win rate
-        const execGrades = [
-            { min: 70, grade: 'SSR+', color: 'text-amber-400' },
-            { min: 60, grade: 'S+', color: 'text-amber-400' },
-            { min: 55, grade: 'S', color: 'text-yellow-400' },
-            { min: 50, grade: 'A+', color: 'text-emerald-400' },
-            { min: 45, grade: 'A', color: 'text-emerald-400' },
-            { min: 40, grade: 'B+', color: 'text-cyan-400' },
-            { min: 35, grade: 'B', color: 'text-cyan-400' },
-            { min: 30, grade: 'C', color: 'text-slate-400' },
-            { min: 0, grade: 'D', color: 'text-rose-400' },
-        ];
-        const exec = execGrades.find(g => winRate >= g.min) || execGrades[execGrades.length - 1];
-
-        // Discipline based on average mastery
-        const avgMastery = (masteryScores.strategyConsistency + masteryScores.riskNeutralization + masteryScores.emotionalStability + masteryScores.positionSizing) / 4;
-        const discGrades = [
-            { min: 90, grade: 'MAX', color: 'text-emerald-400' },
-            { min: 75, grade: 'HIGH', color: 'text-emerald-400' },
-            { min: 60, grade: 'MED', color: 'text-yellow-400' },
-            { min: 40, grade: 'LOW', color: 'text-amber-400' },
-            { min: 0, grade: 'MIN', color: 'text-rose-400' },
-        ];
-        const disc = discGrades.find(g => avgMastery >= g.min) || discGrades[discGrades.length - 1];
-
-        // Scaling Potential based on funded accounts + PnL
-        let scalingScore = 0;
-        scalingScore += Math.min(40, fundedCount * 10); // up to 40 from funded accounts
-        scalingScore += Math.min(30, Math.max(0, totalPnL / 500) * 10); // up to 30 from PnL
-        scalingScore += Math.min(30, trades.length >= 100 ? 30 : trades.length >= 50 ? 20 : trades.length >= 20 ? 10 : 0); // up to 30 from experience
-        const scaleGrades = [
-            { min: 80, grade: 'A++', color: 'text-cyan-400' },
-            { min: 60, grade: 'A+', color: 'text-cyan-400' },
-            { min: 40, grade: 'A', color: 'text-emerald-400' },
-            { min: 25, grade: 'B+', color: 'text-yellow-400' },
-            { min: 10, grade: 'B', color: 'text-amber-400' },
-            { min: 0, grade: 'C', color: 'text-slate-400' },
-        ];
-        const scale = scaleGrades.find(g => scalingScore >= g.min) || scaleGrades[scaleGrades.length - 1];
-
-        // Overall tier
-        const overallScore = (winRate * 0.4 + avgMastery * 0.3 + scalingScore * 0.3);
-        let tier, label;
-        if (overallScore >= 75) { tier = 'Top 1%'; label = 'Elite'; }
-        else if (overallScore >= 60) { tier = 'Top 5%'; label = 'Advanced'; }
-        else if (overallScore >= 45) { tier = 'Top 15%'; label = 'Proficient'; }
-        else if (overallScore >= 30) { tier = 'Top 30%'; label = 'Developing'; }
-        else if (trades.length === 0) { tier = 'Unranked'; label = 'No Data'; }
-        else { tier = 'Top 50%'; label = 'Rookie'; }
-
-        return {
-            tier, label,
-            executionGrade: exec.grade, executionColor: exec.color,
-            disciplineGrade: disc.grade, disciplineColor: disc.color,
-            scalingGrade: scale.grade, scalingColor: scale.color,
-        };
-    }, [activeTrades, accounts, masteryScores]);
-
-    // ── Today's XP ──
-    const todayXp = useMemo(() => {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayTrades = activeTrades.filter(t => t.date === todayStr);
-        if (!todayTrades.length) return 0;
-        const wins = todayTrades.filter(t => t.pnl > 0).length;
-        const pnl = todayTrades.reduce((s, t) => s + (t.pnl || 0), 0);
-        return todayTrades.length * 15 + wins * 35 + Math.max(0, Math.floor(pnl / 100)) * 10;
-    }, [activeTrades]);
+    };
 
     const handleSave = () => {
         updateUserProfile(editData);
+        if (syncProfileToCloud) syncProfileToCloud();
         setIsEditing(false);
-        showSuccess('Profile encrypted and updated successfully');
-    };
-
-    const handleGoalToggle = (goalId) => {
-        const updatedGoals = userProfile.goals.map(g =>
-            g.id === goalId ? { ...g, completed: !g.completed } : g
-        );
-        updateUserProfile({ goals: updatedGoals });
-        showInfo('Trading objective updated');
     };
 
     const handleAddGoal = () => {
@@ -158,7 +120,7 @@ export default function Profile() {
         };
         setEditData(prev => ({
             ...prev,
-            goals: [...prev.goals, newGoal]
+            goals: [...(prev.goals || []), newGoal]
         }));
         setNewGoalText('');
     };
@@ -166,31 +128,20 @@ export default function Profile() {
     const handleRemoveGoal = (id) => {
         setEditData(prev => ({
             ...prev,
-            goals: prev.goals.filter(g => g.id !== id)
+            goals: (prev.goals || []).filter(g => g.id !== id)
         }));
     };
 
-    const handleShareDNA = () => {
-        const dnaSummary = `
-            Trading DNA: ${userProfile.name}
-            Rank: ${currentRank.name} (LVL ${currentRank.level})
-            Total P/L: ${formatCurrency(stats.totalPnL)}
-            Win Rate: ${stats.winRate}%
-            XP: ${stats.xp}
-        `.replace(/^\s+/gm, '');
-
-        navigator.clipboard.writeText(dnaSummary);
-        showSuccess('Trading DNA copied to clipboard');
+    const handleGoalToggle = (id) => {
+        const updatedGoals = (userProfile.goals || []).map(g =>
+            g.id === id ? { ...g, completed: !g.completed } : g
+        );
+        updateUserProfile({ goals: updatedGoals });
     };
 
     const handleAvatarUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                showError('File too large. Max 2MB allowed.');
-                return;
-            }
-
             const reader = new FileReader();
             reader.onloadend = () => {
                 setEditData(prev => ({ ...prev, avatar: reader.result }));
@@ -199,543 +150,772 @@ export default function Profile() {
         }
     };
 
-    const formatCurrency = (val) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(val || 0);
-    };
+    const masteryStats = useMemo(() => {
+        const trades = activeTrades || [];
+        const total = trades.length;
+        if (total === 0) return { strategy: 0, mitigation: 0, buffer: 100 };
 
-    // Derived stats
-    const totalFundedCapital = accounts
-        .filter(acc => acc.type === 'Funded')
-        .reduce((sum, acc) => sum + (acc.capital || 0), 0);
+        // 1. Strategy: Hybrid of Precision (Win Rate) and Documentation (Journaling)
+        const winRate = parseFloat(stats.winRate) || 0;
+        const documented = trades.filter(t =>
+            t.images_execution || t.images_condition || t.images_narrative ||
+            t.comment_fazit || t.psychology || (t.confluences && t.confluences.length > 0)
+        ).length;
+        const docRate = (documented / total) * 100;
+        const strategyScore = Math.round((winRate * 0.6) + (docRate * 0.4));
 
-    const profitFactor = activeTrades.length > 0
-        ? (activeTrades.filter(t => t.pnl > 0).reduce((sum, t) => sum + t.pnl, 0) /
-            Math.abs(activeTrades.filter(t => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0) || 1)).toFixed(2)
-        : '0.00';
+        // 2. Mitigation: Operational Discipline (Mistake-Free Operations)
+        const cleanOperations = trades.filter(t =>
+            !t.mistakes || t.mistakes === 'None' || t.mistakes === '[]' || t.mistakes.length === 0
+        ).length;
+        const mitigationScore = Math.round((cleanOperations / total) * 100);
+
+        // 3. Buffer: Survival Margin / Capital Integrity
+        const bufferScores = accounts.map(acc => {
+            const capital = parseFloat(acc.capital) || 0;
+            const balance = parseFloat(acc.balance) || capital;
+            const maxLoss = parseFloat(acc.max_loss) || (capital * 0.1) || 1000;
+            const currentDrawdown = Math.max(0, capital - balance);
+            return Math.max(0, (1 - (currentDrawdown / maxLoss)) * 100);
+        });
+        const bufferScore = bufferScores.length > 0
+            ? Math.round(bufferScores.reduce((a, b) => a + b, 0) / bufferScores.length)
+            : 100;
+
+        return {
+            strategy: Math.min(100, strategyScore),
+            mitigation: Math.min(100, mitigationScore),
+            buffer: Math.min(100, bufferScore)
+        };
+    }, [activeTrades, stats.winRate, accounts]);
+
+    const tacticalGrade = useMemo(() => {
+        const wr = parseFloat(stats.winRate);
+        const pnlScore = Math.min(100, (stats.totalPnL / 5000) * 100);
+        const score = (wr * 0.6) + (pnlScore * 0.4);
+
+        if (score > 85) return { tier: 'SR', label: 'ELITE OPERATOR', color: 'text-amber-400', bg: 'bg-amber-400/10' };
+        if (score > 70) return { tier: 'A+', label: 'PRECISION SCALPER', color: 'text-rose-500', bg: 'bg-rose-500/10' };
+        if (score > 50) return { tier: 'B', label: 'TACTICAL INITIATE', color: 'text-blue-400', bg: 'bg-blue-400/10' };
+        return { tier: 'C', label: 'MOMENTUM SEEKER', color: 'text-slate-400', bg: 'bg-slate-400/10' };
+    }, [stats]);
 
     return (
-        <div className="max-w-7xl mx-auto py-12 px-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Operator Profile</span>
-                    </div>
-                    <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic">
-                        Global Standing
-                    </h2>
+        <div className="w-full h-full animate-in fade-in slide-in-from-bottom-6 duration-1000">
+
+            {/* Upper Header: Tabs & Calibration */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 px-2">
+                <div className="flex p-1 bg-[#131525] border border-white/5 rounded-2xl w-fit">
+                    <button
+                        onClick={() => setActiveTab('identity')}
+                        className={`px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 ${activeTab === 'identity' ? 'bg-primary text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Operator Identity
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('network')}
+                        className={`px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 ${activeTab === 'network' ? 'bg-primary text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Social Network
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white dark:bg-surface-dark backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 pr-8 border-l-4 border-l-primary shadow-sm">
-                    <div className={`w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg ${currentRank.color.replace('text-', 'shadow-')}/20`}>
-                        <span className={`material-symbols-outlined text-[26px] ${currentRank.color}`}>{currentRank.icon}</span>
+                <div className="flex items-center gap-4">
+                    <div className="hidden xl:flex items-center gap-3 px-6 py-3 bg-[#131525] border border-white/5 rounded-xl">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 font-mono">System Ready</span>
                     </div>
-                    <div>
-                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Current Rank</div>
-                        <div className={`text-lg font-black tracking-tight leading-none ${currentRank.color}`}>{currentRank.name}</div>
-                    </div>
-                    <div className="ml-8 pl-8 border-l border-slate-200 dark:border-slate-800">
-                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Operator Level</div>
-                        <div className="text-2xl font-black dark:text-white tracking-tighter leading-none">LVL {currentRank.level}</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Rank Progress Container */}
-            <div className="mb-12 relative group">
-                <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 overflow-hidden shadow-sm">
-                    <div className="flex justify-between items-end mb-4 px-2">
-                        <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Deployment Path:</span>
-                            <span className="text-xs font-black text-primary uppercase tracking-widest italic">{nextRank?.name || 'MAX RANK ACHIEVED'}</span>
-                        </div>
-                        <div className="flex items-end gap-2">
-                            <span className="text-2xl font-black dark:text-white tracking-tighter leading-none">{Math.floor(stats.xp).toLocaleString()}</span>
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">/ {nextRank?.minXp?.toLocaleString() || 'MAX'} XP</span>
-                        </div>
-                    </div>
-                    <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800">
-                        <div
-                            className="h-full bg-gradient-to-r from-primary via-emerald-400 to-cyan-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(124,93,250,0.3)] relative"
-                            style={{ width: `${xpProgress}%` }}
-                        >
-                            <div className="absolute inset-0 bg-white/10 animate-pulse" />
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => {
+                            setEditData({ ...userProfile });
+                            setIsEditing(true);
+                        }}
+                        className="px-10 py-4 bg-primary text-white font-black rounded-xl hover:brightness-110 transition-all shadow-xl shadow-primary/10 active:scale-95 text-[10px] uppercase tracking-[0.4em]"
+                    >
+                        Calibrate Identity
+                    </button>
                 </div>
             </div>
 
-            {/* Profile Detail Card */}
-            <div className="relative mb-12">
-                <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[3rem] p-10 overflow-hidden shadow-sm">
-                    <div className="flex flex-col lg:flex-row items-center lg:items-start gap-12">
-                        {/* Avatar Column */}
-                        <div className="relative group/avatar">
-                            <div className="absolute -inset-2 bg-gradient-to-br from-primary via-emerald-400 to-cyan-400 rounded-[3.8rem] p-0.5 opacity-50 shadow-xl shadow-primary/10">
-                                <div className="absolute inset-0 bg-white/5 rounded-[3.7rem] opacity-0 group-hover/avatar:opacity-100 transition duration-500" />
-                            </div>
-                            <div className="relative w-44 h-44 rounded-[3.5rem] overflow-hidden bg-slate-900 border-4 border-white/5">
-                                <img
-                                    src={userProfile.avatar}
-                                    className="w-full h-full object-cover transform transition duration-700 group-hover/avatar:scale-110"
-                                    alt="Operator Profile"
-                                />
-                            </div>
-                            <div className="absolute -bottom-1 -right-1 w-12 h-12 bg-primary border-4 border-white dark:border-surface-dark rounded-2xl flex items-center justify-center shadow-xl">
-                                <span className="material-symbols-outlined text-white text-[24px]">verified_user</span>
-                            </div>
-                        </div>
+            {activeTab === 'identity' ? (
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                    <div className="xl:col-span-3 space-y-6">
+                        {/* Identity Hero Card - 'Tactical Dossier' Style */}
+                        <div className="relative group/hero">
+                            <div className="relative bg-[#131525] border border-white/10 rounded-xl p-6 lg:p-10 flex items-center gap-12 shadow-2xl overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px]" />
 
-                        {/* Info Column */}
-                        <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-5 mb-6 mt-2">
-                                <h1 className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic leading-none">
-                                    {userProfile.name}
-                                </h1>
-                                <div className="flex items-center gap-2">
-                                    <div className={`px-4 py-1.5 rounded-xl bg-slate-900 border border-white/10 ${currentRank.color} text-[9px] font-black uppercase tracking-[0.2em] shadow-lg`}>
-                                        {currentRank.name}
+                                {/* Avatar */}
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden border border-white/10 bg-black relative z-10 shadow-2xl">
+                                        <img src={userProfile.avatar} className="w-full h-full object-cover" alt="Profile" />
                                     </div>
-                                    <div className="px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
-                                        LVL {currentRank.level}
+                                    <div className={`absolute -top-3 -right-3 w-10 h-10 ${stats.rank?.color?.replace('text-', 'bg-') || 'bg-primary'} rounded-lg flex items-center justify-center shadow-xl z-20 border border-[#0b0e14]`}>
+                                        <span className="material-symbols-outlined text-white text-xl">{stats.rank?.icon}</span>
+                                    </div>
+                                    <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-[#0b0e14] border border-white/10 rounded-lg flex flex-col items-center justify-center shadow-xl z-20">
+                                        <span className="text-[8px] font-black text-primary uppercase tracking-tighter leading-none mb-1">LVL</span>
+                                        <span className="text-xl font-black text-white leading-none tracking-tighter">{stats.level || 1}</span>
                                     </div>
                                 </div>
-                            </div>
 
-                            <p className="text-slate-500 dark:text-slate-400 text-base font-bold leading-relaxed max-w-2xl italic mb-8 border-l-4 border-primary/20 pl-6">
-                                "{userProfile.bio}"
-                            </p>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-                                <div className="space-y-4">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] block">HQ Station</span>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-3xl filter drop-shadow-sm leading-none">
-                                            {COUNTRIES.find(c => c.name === userProfile.location)?.flag || '📍'}
-                                        </span>
-                                        <div>
-                                            <div className="text-slate-800 dark:text-white font-black tracking-tight leading-none text-sm">{userProfile.location}</div>
-                                            <div className="text-[9px] font-black text-primary/60 uppercase tracking-widest mt-0.5">Authorized</div>
+                                {/* Identity Info */}
+                                <div className="flex-1 min-w-0 space-y-4">
+                                    <div className="flex items-center gap-6">
+                                        <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter uppercase italic truncate bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">{userProfile.name}</h1>
+                                        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.4em]">OPERATIONAL</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-base font-black text-primary italic lowercase">#{userProfile.tag}</span>
+                                            <div className="h-1.5 w-1.5 rounded-full bg-slate-700" />
+                                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] font-mono">{userProfile.location}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-primary text-base">verified_user</span>
+                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">RISK: {userProfile.riskAppetite}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <Metric label="Risk Protocol" value={userProfile.riskAppetite} />
-                                <Metric label="Total Earnings" value={formatCurrency(stats.totalPnL)} />
-                                <Metric label="Global Winrate" value={`${stats.winRate}%`} />
-                            </div>
-                        </div>
-
-                        {/* Action Column */}
-                        <div className="flex lg:flex-col gap-4 w-full lg:w-auto mt-8 lg:mt-0">
-                            <button
-                                onClick={() => {
-                                    setEditData({ ...userProfile });
-                                    setIsEditing(true);
-                                }}
-                                className="flex-1 lg:w-44 py-4 bg-primary text-white font-black rounded-xl hover:bg-primary-light transition-all shadow-lg active:scale-95 text-[9px] uppercase tracking-[0.3em] border border-white/10"
-                            >
-                                Overhaul ID
-                            </button>
-                            <button
-                                onClick={handleShareDNA}
-                                className="flex-1 lg:w-44 py-4 bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-black rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-800 active:scale-95 text-[9px] uppercase tracking-[0.3em]"
-                            >
-                                Extract DNA
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Secondary Sections Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Rank Journey Column */}
-                <div className="lg:col-span-8 space-y-10">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] p-10 overflow-hidden relative shadow-sm">
-                        <div className="flex items-center justify-between mb-12">
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                    <span className="material-symbols-outlined text-amber-500">military_tech</span>
-                                </div>
-                                Rank Hierarchy
-                            </h3>
-                            <div className="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                {ranks.length} Specialized Tiers
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            {ranks.map(r => (
-                                <div key={r.level} className={`relative group/rank p-6 rounded-2xl border transition-all duration-500 ${r.level === currentRank.level
-                                    ? 'bg-primary/5 border-primary/30 shadow-sm'
-                                    : r.level < currentRank.level
-                                        ? 'bg-emerald-500/5 border-emerald-500/10'
-                                        : 'bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800/50 opacity-40 grayscale group-hover/rank:grayscale-0 transition-all'
-                                    }`}>
-                                    <div className={`w-11 h-11 rounded-xl mb-4 flex items-center justify-center transition-transform duration-500 group-hover/rank:scale-110 shadow-sm ${r.level <= currentRank.level ? 'bg-slate-900 border border-white/5' : 'bg-slate-200 dark:bg-white/5'
-                                        }`}>
-                                        <span className={`material-symbols-outlined text-[22px] ${r.level <= currentRank.level ? r.color : 'text-slate-400'}`}>
-                                            {r.icon}
-                                        </span>
-                                    </div>
-                                    <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${r.level <= currentRank.level ? 'text-primary' : 'text-slate-500'}`}>Tier {r.level}</div>
-                                    <div className={`text-sm font-black tracking-tight ${r.level <= currentRank.level ? 'dark:text-white' : 'text-slate-400'}`}>{r.name}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Quest Log */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] p-10 relative overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between mb-10">
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                                    <span className="material-symbols-outlined text-primary">terminal</span>
-                                </div>
-                                Operational Objectives
-                            </h3>
-                            <div className="flex gap-2">
-                                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-widest">
-                                    {userProfile.goals.filter(g => g.completed).length} Success
-                                </div>
-                                <div className="px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-[9px] font-black text-primary uppercase tracking-widest">
-                                    {userProfile.goals.filter(g => !g.completed).length} Active
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-3">
-                            {userProfile.goals.map((goal, idx) => (
-                                <button
-                                    key={goal.id}
-                                    onClick={() => handleGoalToggle(goal.id)}
-                                    className={`w-full flex items-center gap-5 p-5 border rounded-2xl group transition-all duration-500 text-left ${goal.completed
-                                        ? 'bg-emerald-500/[0.03] border-emerald-500/10 hover:bg-emerald-500/[0.06]'
-                                        : 'bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800/50 hover:border-primary/20 hover:bg-white/[0.02]'
-                                        }`}
-                                >
-                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black transition-all duration-500 group-hover:scale-105 shadow-sm ${goal.completed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-200 dark:bg-white/5 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary'
-                                        }`}>
-                                        {goal.completed ? (
-                                            <span className="material-symbols-outlined text-[22px]">task_alt</span>
-                                        ) : (
-                                            <span className="text-base font-black tracking-tighter">0{idx + 1}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className={`text-[8px] font-black uppercase tracking-[0.4em] mb-1 ${goal.completed ? 'text-emerald-500/50' : 'text-slate-500'}`}>Mission Objective {idx + 1}</div>
-                                        <div className={`text-base font-black tracking-tight transition-all duration-500 ${goal.completed ? 'text-emerald-500 line-through opacity-50' : 'text-slate-700 dark:text-slate-200'
-                                            }`}>
-                                            {goal.text}
-                                        </div>
-                                    </div>
-                                    <div className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${goal.completed ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 group-hover:bg-primary group-hover:text-white'}`}>
-                                        {goal.completed ? 'Completed' : 'Execute'}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tactical Stats Column */}
-                <div className="lg:col-span-4 space-y-10">
-                    {/* Global Standing Card */}
-                    <div className="bg-gradient-to-br from-[#1E1B2E] via-[#2A2445] to-[#1E1B2E] rounded-[2.5rem] p-10 text-white shadow-sm relative overflow-hidden group border border-slate-200/5 dark:border-white/5">
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-125 transition-transform duration-[3s]" />
-
-                        <div className="relative">
-                            <div className="flex items-center gap-3 mb-8">
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50">Tactical Grade</span>
-                                <div className="flex-1 h-px bg-white/5" />
-                            </div>
-
-                            <h4 className="text-4xl font-black mb-10 leading-none tracking-tighter italic">
-                                {tacticalGrade.tier}<br />{tacticalGrade.label}
-                            </h4>
-
-                            <div className="space-y-4">
-                                <StandingItem label="Execution Grade" value={tacticalGrade.executionGrade} color={tacticalGrade.executionColor} />
-                                <StandingItem label="Tactical Discipline" value={tacticalGrade.disciplineGrade} color={tacticalGrade.disciplineColor} />
-                                <StandingItem label="Scaling Potential" value={tacticalGrade.scalingGrade} color={tacticalGrade.scalingColor} />
-                            </div>
-
-                            <button className="w-full py-5 bg-white text-slate-900 font-black rounded-xl text-[9px] uppercase tracking-[0.3em] mt-10 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 shadow-sm">
-                                Access Leaderboard
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Progress Stats */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] p-10 relative overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between mb-10 text-slate-800 dark:text-white">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Mastery Matrix</span>
-                            <span className="material-symbols-outlined text-primary text-[24px]">insights</span>
-                        </div>
-                        <div className="space-y-8">
-                            <MasteryItem label="Strategy Consistency" value={masteryScores.strategyConsistency} />
-                            <MasteryItem label="Risk Neutralization" value={masteryScores.riskNeutralization} />
-                            <MasteryItem label="Emotional Stability" value={masteryScores.emotionalStability} />
-                            <MasteryItem label="Position Sizing" value={masteryScores.positionSizing} />
-                        </div>
-
-                        <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div>
-                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">XP Bonus Today</div>
-                                <div className="text-lg font-black text-emerald-400">+{todayXp.toLocaleString()} XP</div>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                                <span className="material-symbols-outlined text-[20px]">bolt</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Edit Modal (Overhauled) */}
-            {isEditing && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-8 bg-background-dark/95 backdrop-blur-3xl" style={{ animation: 'fadeIn 0.3s ease' }} onClick={() => setIsEditing(false)}>
-                    <div className="w-full max-w-4xl max-h-[85vh] flex flex-col bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                        {/* Fixed Header */}
-                        <div className="flex items-center justify-between p-10 pb-6 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-                            <div>
-                                <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic">Redefine Identity</h2>
-                                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Authorized Profile Modification</p>
-                            </div>
-                            <button onClick={() => setIsEditing(false)} className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-rose-500/20 hover:text-rose-500 border border-transparent dark:border-white/5">
-                                <span className="material-symbols-outlined text-[24px]">close</span>
-                            </button>
-                        </div>
-
-                        {/* Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto p-10 pt-8 custom-scrollbar">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                                <div className="space-y-10">
-                                    <div className="space-y-6">
-                                        <InputWrapper label="Codename">
-                                            <input
-                                                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 focus:ring-4 focus:ring-primary/20 outline-none text-slate-800 dark:text-white font-black uppercase tracking-widest"
-                                                value={editData.name}
-                                                onChange={e => setEditData({ ...editData, name: e.target.value })}
-                                            />
-                                        </InputWrapper>
-
-                                        <InputWrapper label="Identity Visual (Avatar)">
-                                            <div className="flex items-center gap-6">
-                                                <div className="relative group/avatar">
-                                                    <div className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-primary/20 bg-slate-100 dark:bg-white/5 relative">
-                                                        <img
-                                                            src={editData.avatar}
-                                                            className="w-full h-full object-cover"
-                                                            alt="Preview"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <span className="material-symbols-outlined text-white">photo_camera</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <input
-                                                        type="file"
-                                                        ref={fileInputRef}
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={handleAvatarUpload}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => fileInputRef.current?.click()}
-                                                        className="w-full py-4 bg-slate-100 dark:bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all mb-2"
-                                                    >
-                                                        Select New File
-                                                    </button>
-                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">PNG, JPG up to 2MB</p>
-                                                </div>
+                                {/* Progression Enhanced */}
+                                <div className="hidden lg:block w-80 space-y-4 pr-6">
+                                    <div className="flex justify-between items-end">
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.6em] italic">Cycle Progression</span>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[15px] font-black text-white uppercase tracking-tighter font-mono">{stats.rank?.name.split(' ')[0]}</span>
+                                                <span className="material-symbols-outlined text-[14px] text-primary">double_arrow</span>
+                                                <span className="text-[15px] font-black text-slate-500 uppercase tracking-tighter font-mono">{stats.nextRank?.name.split(' ')[0] || 'MAX'}</span>
                                             </div>
-                                        </InputWrapper>
-
-                                        <InputWrapper label="Trading Philosophy Statement">
-                                            <textarea
-                                                rows="4"
-                                                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-[2rem] px-6 py-5 focus:ring-4 focus:ring-primary/20 outline-none text-slate-800 dark:text-white font-medium text-lg leading-relaxed italic"
-                                                value={editData.bio}
-                                                onChange={e => setEditData({ ...editData, bio: e.target.value })}
-                                            />
-                                        </InputWrapper>
+                                        </div>
+                                        <span className="text-[13px] font-black text-primary font-mono">{Math.floor(stats.xp || 0).toLocaleString()} XP</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                        <div className="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full transition-all duration-[2s] shadow-[0_0_15px_rgba(124,58,237,0.4)]" style={{ width: `${stats.levelProgress || 0}%` }} />
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div className="space-y-10">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <InputWrapper label="Base Location">
-                                            <CountrySelector
-                                                value={editData.location}
-                                                onChange={val => setEditData({ ...editData, location: val })}
-                                            />
-                                        </InputWrapper>
-                                        <InputWrapper label="Risk Protocol">
-                                            <select
-                                                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 focus:ring-4 focus:ring-primary/20 outline-none text-slate-800 dark:text-white font-bold appearance-none cursor-pointer"
-                                                value={editData.riskAppetite}
-                                                onChange={e => setEditData({ ...editData, riskAppetite: e.target.value })}
-                                            >
-                                                <option value="Conservative">Conservative</option>
-                                                <option value="Balanced">Balanced</option>
-                                                <option value="Aggressive">Aggressive</option>
-                                            </select>
-                                        </InputWrapper>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatTile label="Risk Protocol" value={userProfile.riskAppetite} icon="shield_with_heart" color="text-emerald-400" />
+                            <StatTile label="Tactical Precision" value={`${stats.winRate}%`} icon="target" color="text-primary" />
+                            <StatTile
+                                label="PNL"
+                                value={`${stats.totalPnL >= 0 ? '+' : ''}$${(stats.totalPnL / 1000).toFixed(1)}K`}
+                                icon="payments"
+                                color={stats.totalPnL > 0 ? 'text-emerald-500' : stats.totalPnL < 0 ? 'text-rose-500' : 'text-amber-500'}
+                            />
+                            <StatTile label="Active Rank" value={stats.rank?.name.split(' ')[0]} icon="military_tech" color="text-amber-400" />
+                        </div>
+
+                        <div className="bg-[#131525] border border-white/10 rounded-xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group/obj">
+                            <div className="flex items-center justify-between mb-12">
+                                <h3 className="text-2xl lg:text-3xl font-black text-white tracking-[0.05em] flex items-center gap-6 uppercase italic">
+                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                                        <span className="material-symbols-outlined text-primary text-[28px]">assignment_turned_in</span>
+                                    </div>
+                                    Operational Objectives
+                                </h3>
+                                <div className="flex gap-4">
+                                    <Badge label={`${(userProfile.goals || []).filter(g => g.completed).length} Achieved`} bg="bg-emerald-500/10" color="text-emerald-500" />
+                                    <Badge label={`${(userProfile.goals || []).filter(g => !g.completed).length} Pending`} bg="bg-primary/10" color="text-primary" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                                {(userProfile.goals || []).map((goal, idx) => (
+                                    <button
+                                        key={goal.id}
+                                        onClick={() => handleGoalToggle(goal.id)}
+                                        className={`flex items-center gap-5 p-6 border rounded-xl group transition-all duration-500 text-left relative overflow-hidden ${goal.completed
+                                            ? 'bg-emerald-500/[0.04] border-emerald-500/10'
+                                            : 'bg-white/[0.02] border-white/5 hover:border-primary/40'}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-500 ${goal.completed ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20' : 'bg-white/5 text-white/20 group-hover:bg-primary group-hover:text-white'}`}>
+                                            {goal.completed ? (
+                                                <span className="material-symbols-outlined text-[20px]">check</span>
+                                            ) : (
+                                                <span className="text-[10px] font-black tracking-tighter italic">0{idx + 1}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className={`text-[9px] font-black uppercase tracking-[0.2em] mb-1 ${goal.completed ? 'text-emerald-500/50' : 'text-white/20'}`}>Directive 0{(idx + 1).toString().padStart(2, '0')}</div>
+                                            <div className={`text-lg font-black tracking-tight transition-all duration-500 truncate ${goal.completed ? 'text-emerald-500/50 line-through' : 'text-white'}`}>
+                                                {goal.text}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                                {(userProfile.goals || []).length === 0 && (
+                                    <div className="col-span-full py-24 text-center border-2 border-dashed border-white/5 rounded-3xl group/empty">
+                                        <span className="material-symbols-outlined text-[54px] text-white/5 mb-8 group-hover/empty:scale-110 group-hover/empty:text-primary/20 transition-all duration-700">security_update_good</span>
+                                        <p className="text-lg font-black text-white/10 uppercase tracking-[0.5em] italic">No active objectives calibrated</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="xl:col-span-1 space-y-6">
+                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 relative overflow-hidden group/readiness shadow-2xl">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 opacity-50" />
+                            <div className="relative space-y-10">
+                                <div className="flex items-center justify-between h-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 italic font-mono">Combat Readiness</span>
+                                    </div>
+                                    <div className="px-3 py-1 bg-white/5 border border-white/10 text-[8px] font-black text-primary font-mono rounded shadow-inner">v1.0.6</div>
+                                </div>
+                                <div className="flex items-center gap-7">
+                                    <div className={`w-24 h-24 rounded-[2rem] ${tacticalGrade.bg} flex items-center justify-center border border-white/20 shadow-2xl relative group/tier overflow-hidden`}>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/tier:opacity-100 transition-opacity" />
+                                        <div className={`absolute inset-0 ${tacticalGrade.bg} blur-2xl opacity-40`} />
+                                        <span className={`text-6xl font-black ${tacticalGrade.color} italic font-mono relative z-10 drop-shadow-2xl`}>{tacticalGrade.tier}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-3xl font-black text-white tracking-tighter italic uppercase truncate leading-none mb-2 bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">{tacticalGrade.label}</h4>
+                                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] font-mono flex items-center gap-2">
+                                            <span className="w-4 h-[1px] bg-slate-800" />
+                                            OPERATOR CLASS
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <StandingItem label="Execution" value="ELITE" color="primary" />
+                                    <StandingItem label="Tactical" value="A-RANK" color="cyan-400" />
+                                    <StandingItem label="Scaling" value="ALPHA" color="emerald-400" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 lg:p-10 shadow-2xl relative overflow-hidden group/mastery">
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-400/5 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
+                            <div className="relative">
+                                <div className="flex items-center justify-between mb-12">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 font-mono flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-primary text-sm">leaderboard</span>
+                                        Mastery Analysis
+                                    </h3>
+                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover/mastery:border-primary/40 transition-colors">
+                                        <span className="material-symbols-outlined text-primary text-xl">analytics</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-12">
+                                    <MasteryItem
+                                        label="Strategy"
+                                        value={masteryStats.strategy}
+                                        icon="psychology"
+                                        gradient="from-primary via-primary to-primary-light"
+                                        color="text-primary"
+                                        description="Hybrid of Precision & Narrative. Measures win rate vs. journaling depth (confluences, images, and reflections)."
+                                    />
+                                    <MasteryItem
+                                        label="Mitigation"
+                                        value={masteryStats.mitigation}
+                                        icon="verified_user"
+                                        gradient="from-cyan-400 via-primary to-primary"
+                                        color="text-cyan-400"
+                                        description="Operational Discipline. Tracking the percentage of executions performed without any recorded mistakes or errors."
+                                    />
+                                    <MasteryItem
+                                        label="Buffer"
+                                        value={masteryStats.buffer}
+                                        icon="self_improvement"
+                                        gradient="from-emerald-400 via-cyan-400 to-cyan-400"
+                                        color="text-emerald-400"
+                                        description="Survival Margin. Your distance from the account's maximum loss boundary. High values indicate high capital integrity."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <SocialNetworkView
+                    friends={friends}
+                    friendRequests={friendRequests}
+                    sendFriendRequest={sendFriendRequest}
+                    acceptFriendRequest={acceptFriendRequest}
+                    supabase={supabase}
+                    userId={user?.id}
+                    onContextMenu={onContextMenu}
+                />
+            )}
+
+            {contextMenu && (
+                <SmartPortal coords={{ x: contextMenu.x, y: contextMenu.y }} className="w-80 bg-[#131525]/95 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden focus:outline-none p-7 animate-in zoom-in-95 duration-200">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="relative space-y-6">
+                        {/* Dossier Header */}
+                        <div className="flex items-center gap-4">
+                            <div className="relative group/avatar">
+                                <div className="absolute -inset-1 bg-gradient-to-br from-primary to-cyan-400 rounded-2xl blur opacity-20 group-hover/avatar:opacity-40 transition-opacity" />
+                                <img src={contextMenu.friend.avatar_url} className="w-16 h-16 rounded-2xl object-cover border border-white/20 relative z-10" alt="Friend" />
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-lg shadow-xl flex items-center justify-center border-2 border-[#131525] z-20">
+                                    <span className="material-symbols-outlined text-white text-[12px] font-black italic">bolt</span>
+                                </div>
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Badge label="Verified Sync" bg="bg-emerald-500/10" color="text-emerald-500" />
+                                </div>
+                                <h4 className="text-xl font-black text-white italic uppercase tracking-tighter truncate leading-none mb-1.5">{contextMenu.friend.name}</h4>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-primary font-mono tracking-tighter uppercase italic">#{contextMenu.friend.tag || 'X-000'}</span>
+                                    <div className="w-1 h-1 rounded-full bg-slate-700" />
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono">{contextMenu.friend.rank_name || 'Initiate'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Operational Briefing */}
+                        {contextMenu.friend.bio && (
+                            <div className="space-y-2">
+                                <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest font-mono">Operational Briefing</div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed italic border-l-2 border-primary/30 pl-4 py-1 bg-white/[0.02] rounded-r-lg">
+                                    "{contextMenu.friend.bio}"
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Tactical Metrics */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/5 rounded-2xl p-4 transition-all hover:border-emerald-500/20">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1 font-mono">Yield Accuracy</span>
+                                <span className="text-xl font-black text-emerald-400 italic font-mono">{contextMenu.friend.win_rate !== null ? `${contextMenu.friend.win_rate}%` : '---'}</span>
+                            </div>
+                            <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/5 rounded-2xl p-4 transition-all hover:border-primary/20">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1 font-mono">Combat Level</span>
+                                <span className="text-xl font-black text-primary italic font-mono">LVL {Math.floor(Math.sqrt((contextMenu.friend.xp || 0) / 100)) + 1}</span>
+                            </div>
+                        </div>
+
+                        {/* Progression Matrix */}
+                        <div className="space-y-2.5 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                            <div className="flex justify-between items-center px-1">
+                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em] font-mono">Power Progression</span>
+                                <span className="text-[9px] font-black text-white/50 font-mono tracking-tighter">{Math.floor(contextMenu.friend.xp || 0).toLocaleString()} <span className="text-primary italic">XP</span></span>
+                            </div>
+                            <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                                <div
+                                    className="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full shadow-[0_0_15px_rgba(124,58,237,0.4)] transition-all duration-1000 relative"
+                                    style={{ width: `${(contextMenu.friend.xp % 100) || 0}%` }}
+                                >
+                                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="pt-2 flex flex-col gap-2">
+                            <button
+                                onClick={() => setContextMenu(null)}
+                                className="w-full py-3.5 bg-primary/10 border border-primary/20 rounded-xl text-[9px] font-black text-primary uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3 group"
+                            >
+                                <span className="material-symbols-outlined text-base group-hover:rotate-12 transition-transform">database</span>
+                                Request Data Sync
+                            </button>
+                            <button
+                                onClick={() => setContextMenu(null)}
+                                className="w-full py-3 bg-transparent border border-white/5 rounded-xl text-[8px] font-black text-slate-600 uppercase tracking-[0.4em] hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 group"
+                            >
+                                <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">logout</span>
+                                Terminate Connection
+                            </button>
+                        </div>
+                    </div>
+                </SmartPortal>
+            )}
+
+            {createPortal(
+                <CalibrationModal
+                    isOpen={isEditing}
+                    onClose={() => setIsEditing(false)}
+                    editData={editData}
+                    setEditData={setEditData}
+                    handleSave={handleSave}
+                    handleAvatarUpload={handleAvatarUpload}
+                    fileInputRef={fileInputRef}
+                    handleAddGoal={handleAddGoal}
+                    handleRemoveGoal={handleRemoveGoal}
+                    newGoalText={newGoalText}
+                    setNewGoalText={setNewGoalText}
+                />,
+                document.body
+            )}
+        </div>
+    );
+}
+
+function StatTile({ label, value, icon, color }) {
+    return (
+        <div className="bg-[#131525] border border-white/5 rounded-xl p-8 shadow-2xl group transition-all duration-500">
+            <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-8 border border-white/5 group-hover:bg-primary transition-all duration-500`}>
+                <span className={`material-symbols-outlined ${color} group-hover:text-white text-[22px]`}>{icon}</span>
+            </div>
+            <div className="space-y-2">
+                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] font-mono block">{label}</span>
+                <span className="text-3xl font-black text-white tracking-tighter uppercase italic block">{value}</span>
+            </div>
+        </div>
+    );
+}
+
+function MasteryItem({ label, value, icon, gradient, color, description }) {
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    return (
+        <div className="space-y-5 group/item relative">
+            {showTooltip && (
+                <div className="absolute -top-14 left-0 bg-[#0b0e14]/95 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl z-50 w-72 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className={`material-symbols-outlined text-[12px] ${color}`}>{icon}</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{label} Logic</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                        {description}
+                    </p>
+                    {/* Tooltip Arrow */}
+                    <div className="absolute top-full left-6 -translate-y-1/2 w-2 h-2 bg-[#0b0e14] border-r border-b border-white/10 rotate-45" />
+                </div>
+            )}
+            <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-4">
+                    <div
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                        className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover/item:border-primary/40 group-hover/item:bg-white/10 cursor-help"
+                    >
+                        <span className={`material-symbols-outlined ${color} text-[18px]`}>{icon}</span>
+                    </div>
+                    <span className="text-[11px] font-black text-white tracking-[0.2em] font-mono group-hover/item:text-primary transition-colors uppercase">{label}</span>
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="text-sm font-black text-white italic font-mono block leading-none">{value}%</span>
+                    <div className="flex gap-1 mt-1.5">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className={`w-1 h-1 rounded-full ${i < Math.floor(value / 20) ? color.replace('text-', 'bg-') : 'bg-white/5'}`} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div className="relative h-2.5 w-full bg-black/40 rounded-full border border-white/5 p-[2px] overflow-hidden group-hover/item:border-white/10 transition-all">
+                {/* Progress Fill */}
+                <div
+                    className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all duration-[2s] relative overflow-hidden z-10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`}
+                    style={{ width: `${value}%` }}
+                >
+                    <div className="absolute inset-0 bg-white/10 opacity-20" />
+                    <div className="absolute top-0 right-0 w-8 h-full bg-white/20 blur-md -skew-x-[30deg] translate-x-4" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function StandingItem({ label, value, color }) {
+    // Determine the actual color class for background and text
+    // If it's a custom variable like 'primary', we keep it as is.
+    // Tailwind dynamic classes sometimes fail with opacity modifiers and variables.
+    const baseColorClass = color.startsWith('#') ? '' : color;
+
+    return (
+        <div className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl group hover:border-white/10 hover:bg-white/[0.04] transition-all relative overflow-hidden shadow-inner font-mono">
+            <div
+                className={`absolute top-0 left-0 w-[3px] h-full bg-${baseColorClass} opacity-40 group-hover:opacity-100 transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)]`}
+                style={color.startsWith('#') ? { backgroundColor: color } : {}}
+            />
+            <span
+                className={`text-[10px] font-black uppercase tracking-[0.4em] relative z-10 transition-colors italic text-${baseColorClass} opacity-40 group-hover:opacity-100`}
+                style={color.startsWith('#') ? { color: color } : {}}
+            >
+                {label}
+            </span>
+            <div className={`px-4 py-2 bg-${baseColorClass}/10 border border-current rounded-xl relative z-10 shadow-[0_0_15px_rgba(0,0,0,0.3)] group-hover:shadow-[0_0_20px_currentColor] transition-all duration-500 text-${baseColorClass}`}>
+                <span className="text-[11px] font-black tracking-widest uppercase shadow-black drop-shadow-md">{value}</span>
+            </div>
+        </div>
+    );
+}
+
+function Badge({ label, bg, color }) {
+    return (
+        <div className={`px-4 py-1.5 rounded-xl ${bg} border border-current text-[9px] font-black ${color} uppercase tracking-widest`}>
+            {label}
+        </div>
+    );
+}
+
+function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptFriendRequest, supabase, userId, onContextMenu }) {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    const handleSearch = async () => {
+        if (!searchQuery.trim() || !supabase) return;
+        setIsSearching(true);
+
+        let query = supabase.from('profiles').select('*').limit(10);
+
+        if (searchQuery.startsWith('#')) {
+            const cleanTag = searchQuery.substring(1).toUpperCase();
+            query = query.eq('tag', cleanTag);
+        } else {
+            query = query.ilike('name', `%${searchQuery}%`);
+        }
+
+        const { data, error } = await query.neq('id', userId);
+
+        if (!error) setSearchResults(data || []);
+        setIsSearching(false);
+    };
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-700">
+            {/* Discovery Section - Compact */}
+            <div className="bg-[#131525] rounded-2xl p-6 lg:p-8 shadow-xl relative overflow-hidden group border border-white/10">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+
+                <div className="relative space-y-6">
+                    <div className="space-y-2 max-w-xl">
+                        <div className="flex items-center gap-3">
+                            <Badge label="Global Matrix" bg="bg-primary/10" color="text-primary" />
+                            <div className="h-[1px] flex-1 bg-white/5" />
+                        </div>
+                        <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic truncate bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">
+                            Discover Operators
+                        </h2>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-2 p-1 bg-black/20 backdrop-blur-3xl rounded-xl border border-white/5">
+                        <div className="flex-1 relative">
+                            <span className="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-primary/30 text-xl">radar</span>
+                            <input
+                                className="w-full bg-transparent pl-16 pr-6 py-4 outline-none text-white font-black text-lg placeholder:text-slate-700 tracking-tight"
+                                placeholder="Scan Codename..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                            />
+                        </div>
+                        <button
+                            onClick={handleSearch}
+                            disabled={isSearching}
+                            className="px-8 py-4 bg-primary text-white font-black rounded-lg hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] transition-all active:scale-95 text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-base">{isSearching ? 'sync' : 'search'}</span>
+                            {isSearching ? 'Scanning...' : 'Scan Matrix'}
+                        </button>
+                    </div>
+
+                    {searchResults.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2 animate-in slide-in-from-top-2 duration-300">
+                            {searchResults.map(profile => (
+                                <div key={profile.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-center gap-4 group/result hover:bg-white/[0.04] transition-all">
+                                    <div className="relative">
+                                        <img src={profile.avatar_url} className="w-12 h-12 rounded-lg object-cover border border-white/10" alt="Result" />
+                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#131525] border border-primary/40 rounded flex items-center justify-center text-[8px] font-black text-white shadow-xl">
+                                            {profile.rank_level || 1}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-black text-white truncate italic uppercase tracking-tighter">{profile.name}</div>
+                                        <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{profile.rank_name || 'Initiate'}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => sendFriendRequest(profile.id)}
+                                        className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-primary/20"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">person_add</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Active Syncs - Compact */}
+                <div className="lg:col-span-7 space-y-4">
+                    <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic">
+                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                    <span className="material-symbols-outlined text-emerald-500 text-xl">hub</span>
+                                </div>
+                                Active Syncs
+                            </h3>
+                            <div className="px-2 py-0.5 bg-emerald-500/5 border border-emerald-500/10 rounded text-[8px] font-black text-emerald-500 uppercase tracking-widest leading-none">
+                                {friends.length} AUTH
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {friends.length > 0 ? friends.map(friend => (
+                                <div
+                                    key={friend.id}
+                                    onContextMenu={(e) => onContextMenu(e, friend)}
+                                    className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-center gap-6 group transition-all duration-300 hover:border-emerald-500/30 cursor-context-menu"
+                                >
+                                    <div className="flex items-center gap-4 min-w-[160px]">
+                                        <div className="relative">
+                                            <img src={friend.avatar_url} className="w-12 h-12 rounded-lg object-cover border border-white/10 transition-transform" alt="Friend" />
+                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded flex items-center justify-center text-white border-2 border-[#131525] shadow-lg">
+                                                <span className="material-symbols-outlined text-[8px] font-black">bolt</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-base font-black text-white tracking-tighter italic uppercase leading-none mb-1">{friend.name}</div>
+                                            <div className="text-[8px] font-black text-primary uppercase tracking-widest font-mono opacity-60">{friend.rank_name}</div>
+                                        </div>
                                     </div>
 
-                                    <InputWrapper label="Daily Capital Gain Goal ($)">
-                                        <input
-                                            type="number"
-                                            className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 focus:ring-4 focus:ring-primary/20 outline-none text-slate-800 dark:text-white font-black text-2xl"
-                                            value={editData.dailyPnLGoal}
-                                            onChange={e => setEditData({ ...editData, dailyPnLGoal: parseFloat(e.target.value) || 0 })}
-                                        />
-                                    </InputWrapper>
-
-                                    <div className="flex flex-col h-[300px]">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] block mb-4 px-1">Quest Line Editor</label>
-                                        <div className="space-y-3 mb-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                                            {editData.goals.map(goal => (
-                                                <div key={goal.id} className="flex gap-4 group">
-                                                    <input
-                                                        className="flex-1 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 outline-none text-slate-800 dark:text-white font-bold text-sm"
-                                                        value={goal.text}
-                                                        onChange={e => {
-                                                            const updated = editData.goals.map(g => g.id === goal.id ? { ...g, text: e.target.value } : g);
-                                                            setEditData({ ...editData, goals: updated });
-                                                        }}
-                                                    />
-                                                    <button
-                                                        onClick={() => handleRemoveGoal(goal.id)}
-                                                        className="w-12 h-12 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 flex items-center justify-center hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <span className="material-symbols-outlined">delete</span>
-                                                    </button>
-                                                </div>
-                                            ))}
+                                    <div className="flex-1 grid grid-cols-3 gap-4 border-l border-white/5 pl-6">
+                                        <div>
+                                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">Yield</div>
+                                            <div className="text-xs font-black text-white italic font-mono uppercase">
+                                                {friend.win_rate !== null ? `${friend.win_rate}%` : '---'}
+                                            </div>
                                         </div>
-                                        <div className="flex gap-4">
-                                            <input
-                                                className="flex-1 bg-slate-50 dark:bg-white/[0.03] border border-primary/20 rounded-2xl px-6 py-5 outline-none text-slate-800 dark:text-white font-bold text-sm focus:ring-4 focus:ring-primary/10"
-                                                placeholder="Forge new mission..."
-                                                value={newGoalText}
-                                                onChange={e => setNewGoalText(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && handleAddGoal()}
-                                            />
-                                            <button
-                                                onClick={handleAddGoal}
-                                                className="px-8 bg-primary text-white font-black rounded-2xl flex items-center justify-center hover:shadow-xl transition-all"
-                                            >
-                                                <span className="material-symbols-outlined">add</span>
+                                        <div>
+                                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">XP</div>
+                                            <div className="text-xs font-black text-white italic font-mono uppercase">LVL {Math.floor(Math.sqrt((friend.xp || 0) / 100)) + 1}</div>
+                                        </div>
+                                        <div className="flex justify-end pr-2">
+                                            <button className="w-9 h-9 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/5 flex items-center justify-center active:scale-95">
+                                                <span className="material-symbols-outlined text-lg">logout</span>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                            )) : (
+                                <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10">
+                                    <span className="material-symbols-outlined text-3xl text-white/5 mb-3">group_off</span>
+                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] italic">No active syncs</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Signals - Compact */}
+                <div className="lg:col-span-5 space-y-4">
+                    <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic leading-none">
+                                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shadow-inner">
+                                    <span className="material-symbols-outlined text-primary text-xl">satellite_alt</span>
+                                </div>
+                                Signals
+                            </h3>
+                            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary shadow-lg border border-primary/20">
+                                {(friendRequests || []).length}
                             </div>
                         </div>
 
-                        {/* Fixed Footer */}
-                        <div className="flex gap-6 p-10 pt-6 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
-                            <button
-                                onClick={() => setIsEditing(false)}
-                                className="flex-1 py-5 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl hover:bg-rose-500/10 hover:text-rose-500 transition-all text-xs uppercase tracking-widest"
-                            >
-                                Terminate Changes
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                className="flex-[2] py-5 bg-primary text-white font-black rounded-2xl hover:bg-primary-light transition-all shadow-[0_20px_50px_rgba(124,93,250,0.4)] text-xs uppercase tracking-[0.2em]"
-                            >
-                                Authorize Identity Update
-                            </button>
+                        <div className="space-y-2">
+                            {(friendRequests || []).length > 0 ? friendRequests.map(req => (
+                                <div key={req.id} className="p-3 bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-4 transition-all hover:bg-white/[0.06]">
+                                    <img src={req.avatar_url} className="w-11 h-11 rounded-lg object-cover border border-white/10" alt="Request" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-black text-white truncate italic uppercase tracking-tighter">{req.name}</div>
+                                        <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">Incoming Signal</div>
+                                    </div>
+                                    <button
+                                        onClick={() => acceptFriendRequest(req.id)}
+                                        className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                                    >
+                                        <span className="material-symbols-outlined text-xl">check</span>
+                                    </button>
+                                </div>
+                            )) : (
+                                <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10 flex flex-col items-center justify-center">
+                                    <span className="material-symbols-outlined text-2xl text-white/5 mb-2">notifications_off</span>
+                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] italic">No signals</div>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>,
-                document.body)}
+                </div>
+            </div>
         </div>
     );
 }
 
 function CountrySelector({ value, onChange }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const wrapperRef = useRef(null);
-
-    const selectedCountry = COUNTRIES.find(c => c.name === value) || COUNTRIES.find(c => c.name === 'Spain');
-
-    const filtered = useMemo(() =>
-        COUNTRIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase())),
-        [search]
-    );
+    const [searchTerm, setSearchTerm] = useState('');
+    const containerRef = useRef(null);
 
     useEffect(() => {
-        function handleClickOutside(event) {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
                 setIsOpen(false);
             }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const selectedCountry = COUNTRIES.find(c => c.name === value) || COUNTRIES.find(c => c.name === 'United States');
+
+    const filteredCountries = COUNTRIES.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <div className="relative" ref={wrapperRef}>
+        <div className="relative" ref={containerRef}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 focus:ring-4 focus:ring-primary/20 outline-none text-slate-800 dark:text-white font-bold flex items-center justify-between transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white font-bold flex items-center justify-between transition-all hover:border-primary/50 focus:border-primary/50 shadow-lg"
             >
                 <div className="flex items-center gap-3">
-                    <span className="text-2xl">{selectedCountry?.flag}</span>
-                    <span className="truncate">{selectedCountry?.name}</span>
+                    <span className="text-xl">{selectedCountry?.flag || '🏳️'}</span>
+                    <span className="text-sm font-bold uppercase tracking-widest">{selectedCountry?.name || 'Select Country'}</span>
                 </div>
-                <span className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                <span className={`material-symbols-outlined text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`}>expand_more</span>
             </button>
 
             {isOpen && (
-                <div className="absolute z-[1100] top-full left-0 right-0 mt-3 bg-white dark:bg-[#1A1D26] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 backdrop-blur-3xl">
-                    <div className="p-4 border-b border-slate-100 dark:border-white/5">
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-                            <input
-                                autoFocus
-                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-white"
-                                placeholder="Filter countries..."
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                            />
-                        </div>
+                <div className="absolute z-[100] w-full mt-2 bg-[#1A1D26] border border-white/10 rounded-2xl shadow-2xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 border-b border-white/5">
+                        <input
+                            autoFocus
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none text-white placeholder-slate-600"
+                            placeholder="Search countries..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                    <div className="max-h-[320px] overflow-y-auto custom-scrollbar p-2">
-                        {filtered.map(c => (
+                    <div className="max-h-[200px] overflow-y-auto custom-scrollbar p-1">
+                        {filteredCountries.map((country) => (
                             <button
-                                key={c.code}
+                                key={country.code}
                                 type="button"
                                 onClick={() => {
-                                    onChange(c.name);
+                                    onChange(country.name);
                                     setIsOpen(false);
-                                    setSearch('');
+                                    setSearchTerm('');
                                 }}
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all text-left ${c.name === value
-                                    ? 'bg-primary text-white'
-                                    : 'hover:bg-primary/10 text-slate-700 dark:text-slate-300'
-                                    }`}
+                                className={`w-full px-3 py-2 flex items-center gap-3 rounded-lg text-left transition-all ${country.name === value ? 'bg-primary text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                             >
-                                <span className="text-2xl">{c.flag}</span>
-                                <span className="font-bold">{c.name}</span>
-                                {c.name === value && <span className="material-symbols-outlined ml-auto text-white">check_circle</span>}
+                                <span className="text-lg">{country.flag}</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">
+                                    {country.name}
+                                </span>
                             </button>
                         ))}
-                        {filtered.length === 0 && (
-                            <div className="py-8 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">No territories found</div>
+                        {filteredCountries.length === 0 && (
+                            <div className="px-3 py-4 text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                                No matches found
+                            </div>
                         )}
                     </div>
                 </div>
@@ -744,47 +924,207 @@ function CountrySelector({ value, onChange }) {
     );
 }
 
-function Metric({ label, value }) {
-    return (
-        <div className="flex flex-col group/metric cursor-default">
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 group-hover/metric:text-primary transition-colors">{label}</span>
-            <span className="text-xl font-black text-slate-800 dark:text-white tracking-tighter leading-none group-hover/metric:scale-105 transition-transform origin-left">{value}</span>
-            <div className="h-0.5 w-6 bg-primary/20 mt-2 group-hover/metric:w-12 group-hover/metric:bg-primary transition-all duration-500" />
-        </div>
-    );
-}
+function CalibrationModal({
+    isOpen, onClose, editData, setEditData, handleSave, handleAvatarUpload,
+    fileInputRef, handleAddGoal, handleRemoveGoal, newGoalText, setNewGoalText
+}) {
+    const [isVisible, setIsVisible] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
 
-function StandingItem({ label, value, color }) {
-    return (
-        <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all duration-300">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">{label}</span>
-            <span className={`text-2xl font-black ${color} tracking-tighter filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]`}>{value}</span>
-        </div>
-    );
-}
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setIsAnimating(true);
+                });
+            });
+        } else {
+            setIsAnimating(false);
+            const timer = setTimeout(() => setIsVisible(false), 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
 
-function MasteryItem({ label, value }) {
+    if (!isVisible) return null;
+
     return (
-        <div className="space-y-2">
-            <div className="flex justify-between items-center px-1">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-                <span className="text-xs font-black dark:text-white">{value}%</span>
+        <div
+            className={`fixed inset-0 z-[9999] flex items-center justify-center p-8 transition-all duration-500 ease-out ${isAnimating ? 'bg-[#0b0c14]/80 backdrop-blur-md opacity-100' : 'bg-[#0b0c14]/0 backdrop-blur-none opacity-0'}`}
+            onClick={onClose}
+        >
+            <div
+                className={`w-full max-w-5xl max-h-[90vh] flex flex-col bg-[#131525] border border-white/10 rounded-[3.5rem] shadow-2xl relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-95 translate-y-8 opacity-0 blur-md'}`}
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between p-12 pb-8 border-b border-white/5">
+                    <div>
+                        <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic">Redefine Identity</h2>
+                        <div className="flex items-center gap-3 mt-2">
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Authorized Calibration</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-transparent">
+                        <span className="material-symbols-outlined text-3xl">close</span>
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-12 pt-10 custom-scrollbar">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                        <div className="space-y-12">
+                            <div className="space-y-8">
+                                <label className="text-[11px] font-black text-primary uppercase tracking-[0.4em]">Section 01: Core Recognition</label>
+                                <div className="space-y-4">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Active Codename</label>
+                                    <input
+                                        className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-8 py-6 outline-none text-slate-800 dark:text-white font-black uppercase tracking-widest text-lg focus:ring-4 focus:ring-primary/10 transition-all"
+                                        value={editData.name}
+                                        onChange={e => setEditData({ ...editData, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Identity Visual (Avatar)</label>
+                                    <div className="flex items-center gap-8 p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-3xl">
+                                        <div className="w-28 h-28 rounded-3xl overflow-hidden border-2 border-primary/20 bg-slate-100 dark:bg-white/5 relative">
+                                            <img src={editData.avatar} className="w-full h-full object-cover" alt="Preview" />
+                                        </div>
+                                        <div className="flex-1 space-y-3">
+                                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="w-full py-4 bg-primary text-white font-black rounded-2xl hover:bg-primary-light transition-all shadow-lg shadow-primary/10 text-[10px] uppercase tracking-widest"
+                                            >
+                                                Select New File
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Trading Philosophy</label>
+                                    <textarea
+                                        rows="4"
+                                        className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-[2.5rem] px-8 py-6 outline-none text-slate-800 dark:text-white font-medium text-lg italic leading-relaxed focus:ring-4 focus:ring-primary/10 transition-all"
+                                        value={editData.bio}
+                                        onChange={e => setEditData({ ...editData, bio: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-12">
+                            <div className="space-y-8">
+                                <label className="text-[11px] font-black text-primary uppercase tracking-[0.4em]">Section 02: Operational Rules</label>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Base Origin</label>
+                                        <CountrySelector
+                                            value={editData.location}
+                                            onChange={val => setEditData({ ...editData, location: val })}
+                                        />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Risk Protocol</label>
+                                        <select
+                                            className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 outline-none text-slate-800 dark:text-white font-bold appearance-none focus:ring-4 focus:ring-primary/10"
+                                            value={editData.riskAppetite}
+                                            onChange={e => setEditData({ ...editData, riskAppetite: e.target.value })}
+                                        >
+                                            <option value="Conservative">Conservative</option>
+                                            <option value="Balanced">Balanced</option>
+                                            <option value="Aggressive">Aggressive</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Privacy Configuration</label>
+                                    <div className="grid gap-4 p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-3xl">
+                                        <PrivacyToggle
+                                            label="Global Visibility"
+                                            description="Allow other operators to find your codename."
+                                            enabled={editData.privacy?.isPublic}
+                                            onChange={val => setEditData({ ...editData, privacy: { ...editData.privacy, isPublic: val } })}
+                                        />
+                                        <PrivacyToggle
+                                            label="Performance Translucency"
+                                            description="Share stats with active syncs."
+                                            enabled={editData.privacy?.showPnL}
+                                            onChange={val => setEditData({ ...editData, privacy: { ...editData.privacy, showPnL: val } })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between px-1">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Directives</label>
+                                        <span className="text-[10px] font-black text-primary uppercase">MAX 10</span>
+                                    </div>
+                                    <div className="space-y-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {(editData.goals || []).map(goal => (
+                                            <div key={goal.id} className="flex gap-4 group">
+                                                <input
+                                                    className="flex-1 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 outline-none text-slate-700 dark:text-slate-200 font-bold text-sm"
+                                                    value={goal.text}
+                                                    onChange={e => {
+                                                        const updated = editData.goals.map(g => g.id === goal.id ? { ...g, text: e.target.value } : g);
+                                                        setEditData({ ...editData, goals: updated });
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => handleRemoveGoal(goal.id)}
+                                                    className="w-12 h-12 flex-shrink-0 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <input
+                                            className="flex-1 bg-white dark:bg-white/5 border-2 border-primary/20 rounded-2xl px-6 py-5 outline-none text-slate-800 dark:text-white font-bold text-sm focus:border-primary transition-all"
+                                            placeholder="Assign objective..."
+                                            value={newGoalText}
+                                            onChange={e => setNewGoalText(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddGoal()}
+                                        />
+                                        <button onClick={handleAddGoal} className="w-16 bg-primary text-white font-black rounded-2xl flex items-center justify-center hover:shadow-xl active:scale-95 transition-all text-2xl">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-12 pt-8 flex gap-6 bg-black/20 border-t border-white/5">
+                    <button onClick={onClose} className="flex-1 py-6 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-3xl hover:bg-slate-300 transition-all text-[11px] uppercase tracking-widest">
+                        Terminate
+                    </button>
+                    <button onClick={handleSave} className="flex-[2] py-6 bg-primary text-white font-black rounded-3xl hover:bg-primary-light transition-all shadow-2xl shadow-primary/30 active:scale-95 text-[11px] uppercase tracking-[0.3em]">
+                        Authorize
+                    </button>
+                </div>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                <div
-                    className="h-full bg-primary rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(124,93,250,0.4)]"
-                    style={{ width: `${value}%` }}
-                />
-            </div>
         </div>
     );
 }
 
-function InputWrapper({ label, children }) {
+function PrivacyToggle({ label, description, enabled, onChange }) {
     return (
-        <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] block px-1">{label}</label>
-            {children}
-        </div>
+        <button
+            onClick={() => onChange(!enabled)}
+            className="w-full flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-white/5 border border-transparent hover:border-primary/20 transition-all text-left group"
+        >
+            <div className="space-y-1">
+                <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-widest block">{label}</span>
+                <p className="text-[10px] text-slate-500 font-medium italic">{description}</p>
+            </div>
+            <div className={`w-14 h-8 rounded-full transition-all duration-500 relative flex items-center px-1.5 ${enabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                <div className={`w-5 h-5 bg-white rounded-full transition-all duration-500 shadow-sm ${enabled ? 'translate-x-[24px]' : 'translate-x-0'}`} />
+            </div>
+        </button>
     );
 }

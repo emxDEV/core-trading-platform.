@@ -13,8 +13,8 @@ export default function Layout({ children }) {
             <Sidebar />
             <main className="flex-1 flex flex-col overflow-hidden relative z-10">
                 <Header />
-                <div className="flex-1 overflow-y-auto py-12 custom-scrollbar space-y-12">
-                    <div className="px-16">
+                <div className="flex-1 overflow-y-auto py-8 custom-scrollbar">
+                    <div className="px-8 lg:px-12 h-full">
                         {children}
                     </div>
                 </div>

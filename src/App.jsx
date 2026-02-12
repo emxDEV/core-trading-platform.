@@ -187,12 +187,15 @@ function MainContent() {
   );
 }
 
+import DailyJournal from './components/DailyJournal';
+
 function GlobalModal() {
-  const { isModalOpen, closeModal, tradeToEdit, isDailyPnLOpen, setIsDailyPnLOpen } = useData();
+  const { isModalOpen, closeModal, tradeToEdit, isDailyPnLOpen, setIsDailyPnLOpen, isDailyJournalOpen } = useData();
   return (
     <>
       <NewTradeModal isOpen={isModalOpen} onClose={closeModal} tradeToEdit={tradeToEdit} />
       <DailyPnLModal isOpen={isDailyPnLOpen} onClose={() => setIsDailyPnLOpen(false)} />
+      <DailyJournal />
       <ImportModal />
     </>
   );

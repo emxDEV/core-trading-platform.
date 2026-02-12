@@ -158,6 +158,10 @@ export const TradeProvider = ({ children }) => {
     const syncTimerRef = useRef(null);
     const isSyncingRef = useRef(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [dailyJournals, setDailyJournals] = useState([]);
+    const [friends, setFriends] = useState([]);
+    const [friendRequests, setFriendRequests] = useState([]);
+    const [isDailyJournalOpen, setIsDailyJournalOpen] = useState(false);
 
     // Schema Capabilities Detection
     const [syncCapabilities, setSyncCapabilities] = useState({
@@ -167,67 +171,103 @@ export const TradeProvider = ({ children }) => {
 
     useEffect(() => {
         const checkCloudCapabilities = async () => {
-            // Probe for advanced columns & tables
-            const checkTrade = await supabase.from('trades').select('comment_bias').limit(1);
-            const checkAccount = await supabase.from('accounts').select('payout_goal').limit(1);
-            const checkGroups = await supabase.from('copy_groups').select('id').limit(1);
+            if (!user) return; // Only check if auth exists
 
-            setSyncCapabilities({
-                advancedTrades: !checkTrade.error && checkTrade.error?.code !== 'PGRST301',
-                advancedAccounts: !checkAccount.error,
-                copyGroups: !checkGroups.error
-            });
+            try {
+                // Probe for advanced columns & tables SEQUENTIALLY with delays
+                // to prevent connection resets on startup
+                const checkTrade = await supabase.from('trades').select('comment_bias').limit(1);
+
+                // Small delay to release network thread
+                await new Promise(r => setTimeout(r, 1000));
+
+                const checkAccount = await supabase.from('accounts').select('payout_goal').limit(1);
+
+                // Small delay
+                await new Promise(r => setTimeout(r, 1000));
+
+                const checkGroups = await supabase.from('copy_groups').select('id').limit(1);
+
+                setSyncCapabilities({
+                    advancedTrades: !checkTrade.error && checkTrade.error?.code !== 'PGRST301',
+                    advancedAccounts: !checkAccount.error,
+                    copyGroups: !checkGroups.error
+                });
+            } catch (e) {
+                console.warn('[Capabilities] Probe failed, assuming legacy schema for stability:', e.message);
+            }
         };
-        checkCloudCapabilities();
-    }, []);
+        // Increase delay heavily (8s) to prioritize critical data loading and social sync
+        const timer = setTimeout(checkCloudCapabilities, 8000);
+        return () => clearTimeout(timer);
+    }, [user]);
 
     const [userProfile, setUserProfile] = useState({
-        name: 'Alex Rivera',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDU5qbxeGZ1q28nET6V7_0hQ4NxoH7ud3tqcYDgp50RVdhrWsKMQ-nfmoPpypW9CovWtV4x_lsU7cH6JTocjzbiQd-pCplppt1p8_U3OZofiYP_PbnYuJqoSsSyVkhTy0L0aS5QDQCxFYMo4nDBwT_sC42NgRYVFmicT5HIEtL2k1tTOBNwxJMhTxkTbL1JlyEze52t2DVfFeCgVE0AmzHGfVTRNYDq3l8HKz41Kgw3ilX39_5 (etc...)', // Truncated for brevity but the real one is kept in state
+        name: 'Trader',
+        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDU5qbxeGZ1q28nET6V7_0hQ4NxoH7ud3tqcYDgp50RVdhrWsKMQ-nfmoPpypW9CovWtV4x_lsU7cH6JTocjzbiQd-pCplppt1p8_U3OZofiYP_PbnYuJqoSsSyVkhTy0L0aS5QDQCxFYMo4nDBwT_sC42NgRYVFmicT5HIEtL2k1tTOBNwxJMhTxkTbL1JlyEze52t2DVfFeCgVE0AmzHGfVTRNYDq3l8HKz41Kgw3ilX39_5Q9fYqC1dpEqRqIZFXaItdbIomvGLr',
         bio: 'Focused on disciplined prop firm scaling and algorithmic execution patterns.',
         goals: [],
         dailyPnLGoal: 2500,
         riskAppetite: 'Balanced',
         location: 'Barcelona, Spain',
-        memberSince: '2024'
+        memberSince: '2024',
+        tag: '000000',
+        privacy: { isPublic: true, showPnL: true, showWinRate: true, showRank: true }
     });
 
-    // Resetting userProfile to the full version if it was truncated in my thought
     // Load/Save User Profile based on user.id
     useEffect(() => {
         if (!user) return;
 
-        const profileKey = `userProfile_${user.id}`;
-        let savedProfile = localStorage.getItem(profileKey);
+        const loadProfile = async () => {
+            const profileKey = `userProfile_${user.id}`;
+            let savedProfile = localStorage.getItem(profileKey);
 
-        // Fallback to legacy key if specific not found
-        if (!savedProfile) {
-            savedProfile = localStorage.getItem('userProfile');
+            // Fallback to legacy key if specific not found
+            if (!savedProfile) {
+                savedProfile = localStorage.getItem('userProfile');
+                if (savedProfile) {
+                    localStorage.setItem(profileKey, savedProfile);
+                }
+            }
+
             if (savedProfile) {
-                // Migrate to new key
-                localStorage.setItem(profileKey, savedProfile);
+                try {
+                    const parsed = JSON.parse(savedProfile);
+                    // Ensure tag exists to prevent any future race conditions
+                    if (!parsed.tag || parsed.tag === '000000') {
+                        parsed.tag = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        localStorage.setItem(profileKey, JSON.stringify(parsed));
+                    }
+                    setUserProfile(parsed);
+                } catch (e) {
+                    console.error('Failed to parse profile:', e);
+                }
+            } else {
+                // Default profile for new user
+                const defaultProfile = {
+                    name: user.email?.split('@')[0] || 'Trader',
+                    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDU5qbxeGZ1q28nET6V7_0hQ4NxoH7ud3tqcYDgp50RVdhrWsKMQ-nfmoPpypW9CovWtV4x_lsU7cH6JTocjzbiQd-pCplppt1p8_U3OZofiYP_PbnYuJqoSsSyVkhTy0L0aS5QDQCxFYMo4nDBwT_sC42NgRYVFmicT5HIEtL2k1tTOBNwxJMhTxkTbL1JlyEze52t2DVfFeCgVE0AmzHGfVTRNYDq3l8HKz41Kgw3ilX39_5Q9fYqC1dpEqRqIZFXaItdbIomvGLr',
+                    bio: 'Focused on disciplined prop firm scaling and algorithmic execution patterns.',
+                    goals: [],
+                    dailyPnLGoal: 2500,
+                    riskAppetite: 'Balanced',
+                    location: 'Barcelona, Spain',
+                    memberSince: new Date().getFullYear().toString(),
+                    tag: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                    privacy: {
+                        isPublic: true,
+                        showPnL: true,
+                        showWinRate: true,
+                        showRank: true
+                    }
+                };
+                setUserProfile(defaultProfile);
+                localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
             }
-        }
+        };
 
-        if (savedProfile) {
-            try {
-                setUserProfile(JSON.parse(savedProfile));
-            } catch (e) {
-                console.error('Failed to parse profile:', e);
-            }
-        } else {
-            // Default profile for new user
-            setUserProfile({
-                name: user.email?.split('@')[0] || 'Trader',
-                avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDU5qbxeGZ1q28nET6V7_0hQ4NxoH7ud3tqcYDgp50RVdhrWsKMQ-nfmoPpypW9CovWtV4x_lsU7cH6JTocjzbiQd-pCplppt1p8_U3OZofiYP_PbnYuJqoSsSyVkhTy0L0aS5QDQCxFYMo4nDBwT_sC42NgRYVFmicT5HIEtL2k1tTOBNwxJMhTxkTbL1JlyEze52t2DVfFeCgVE0AmzHGfVTRNYDq3l8HKz41Kgw3ilX39_5Q9fYqC1dpEqRqIZFXaItdbIomvGLr',
-                bio: 'Focused on disciplined prop firm scaling and algorithmic execution patterns.',
-                goals: [],
-                dailyPnLGoal: 2500,
-                riskAppetite: 'Balanced',
-                location: 'Barcelona, Spain',
-                memberSince: new Date().getFullYear().toString()
-            });
-        }
+        loadProfile();
     }, [user]);
 
     const [appSettings, setAppSettings] = useState({
@@ -255,19 +295,24 @@ export const TradeProvider = ({ children }) => {
     });
 
     const RANKS = [
-        { level: 1, name: 'Initiate', minXp: 0, color: 'text-slate-400', icon: 'auto_fix' },
-        { level: 2, name: 'Tactical Novice', minXp: 500, color: 'text-emerald-400', icon: 'target' },
-        { level: 3, name: 'Momentum Builder', minXp: 2000, color: 'text-cyan-400', icon: 'trending_up' },
-        { level: 4, name: 'Consistent Scalper', minXp: 5000, color: 'text-blue-400', icon: 'bolt' },
-        { level: 5, name: 'Prop Associate', minXp: 12000, color: 'text-indigo-400', icon: 'verified_user' },
-        { level: 6, name: 'Elite Performer', minXp: 30000, color: 'text-purple-400', icon: 'military_tech' },
-        { level: 7, name: 'Capital Master', minXp: 75000, color: 'text-amber-400', icon: 'workspace_premium' },
-        { level: 8, name: 'Apex Legend', minXp: 200000, color: 'text-rose-500', icon: 'diamond' }
+        { level: 1, name: 'Initiate', minXp: 0, color: 'text-slate-400', icon: 'auto_fix', badge: '🔰' },
+        { level: 2, name: 'Tactical Novice', minXp: 1000, color: 'text-emerald-400', icon: 'target', badge: '🎯' },
+        { level: 3, name: 'Momentum Builder', minXp: 5000, color: 'text-cyan-400', icon: 'trending_up', badge: '📈' },
+        { level: 4, name: 'Consistent Scalper', minXp: 15000, color: 'text-blue-400', icon: 'bolt', badge: '⚡' },
+        { level: 5, name: 'Prop Associate', minXp: 40000, color: 'text-indigo-400', icon: 'verified_user', badge: '🛡️' },
+        { level: 6, name: 'Elite Performer', minXp: 100000, color: 'text-purple-400', icon: 'military_tech', badge: '🏅' },
+        { level: 7, name: 'Capital Master', minXp: 250000, color: 'text-amber-400', icon: 'workspace_premium', badge: '🏆' },
+        { level: 8, name: 'Apex Legend', minXp: 1000000, color: 'text-rose-500', icon: 'diamond', badge: '💎' }
     ];
+
+    const isInitializingRef = useRef(false);
 
     useEffect(() => {
         const init = async () => {
-            if (user && window.electron) {
+            if (!user?.id || isInitializingRef.current) return;
+            isInitializingRef.current = true;
+
+            if (window.electron) {
                 // 1. Wipe Guest Data (Offline Session)
                 try {
                     await window.electron.ipcRenderer.invoke('db-delete-guest-data');
@@ -278,9 +323,10 @@ export const TradeProvider = ({ children }) => {
 
             // 2. Load User Data (or empty if new/wiped)
             await loadInitialData();
+            isInitializingRef.current = false;
 
             // 3. If User Logged In AND Workspace Empty -> Prompt Import
-            if (user && window.electron) {
+            if (window.electron) {
                 try {
                     const tRes = await window.electron.ipcRenderer.invoke('db-get-trades', user.id);
                     const aRes = await window.electron.ipcRenderer.invoke('db-get-accounts', user.id);
@@ -295,7 +341,7 @@ export const TradeProvider = ({ children }) => {
             }
         };
         init();
-    }, [user]);
+    }, [user?.id]);
 
     // Helper to get start/end dates for predefined ranges
     const getRangeDates = (type) => {
@@ -413,22 +459,37 @@ export const TradeProvider = ({ children }) => {
         const fundedCount = accounts.filter(a => a.type === 'Funded').length;
         lifetimeXp += fundedCount * 1000;
 
+        // Add Journal XP
+        lifetimeXp += (dailyJournals || []).filter(j => j.is_completed).length * 100;
+
         let currentRank = RANKS[0];
+        let nextRank = RANKS[1];
         for (let i = RANKS.length - 1; i >= 0; i--) {
             if (lifetimeXp >= RANKS[i].minXp) {
                 currentRank = RANKS[i];
+                nextRank = RANKS[i + 1] || null;
                 break;
             }
         }
+
+        // Calculate Level based on XP (Square root curve for progression)
+        // Level 1 = 0 XP, Level 100 = 1,000,000 XP
+        const userLevel = Math.max(1, Math.floor(Math.sqrt(lifetimeXp / 100)) + 1);
+        const nextLevelXp = Math.pow(userLevel, 2) * 100;
+        const currentLevelXp = Math.pow(userLevel - 1, 2) * 100;
+        const levelProgress = ((lifetimeXp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100;
 
         // Stats for the view period
         setStats({
             winRate: ((wins / total) * 100).toFixed(1),
             totalPnL,
             totalTrades: total,
-            monthlyPnL: totalPnL, // In this context, it's just "Period PnL"
-            xp: lifetimeXp, // Keep XP as lifetime property for the profile badge
-            rank: currentRank // Keep Rank as lifetime property
+            monthlyPnL: totalPnL,
+            xp: lifetimeXp,
+            rank: currentRank,
+            nextRank,
+            level: userLevel,
+            levelProgress: Math.min(100, Math.max(0, levelProgress))
         });
     };
 
@@ -486,17 +547,94 @@ export const TradeProvider = ({ children }) => {
         });
     };
 
+    const loadDailyJournals = async () => {
+        if (!window.electron) return;
+        const result = await window.electron.ipcRenderer.invoke('db-get-daily-journals', user?.id);
+        if (result.success) setDailyJournals(result.data);
+    };
+
+    const loadFriends = async () => {
+        if (!user) return;
+
+        try {
+            // 1. Get relationships from friends table
+            const { data: relations, error } = await supabase
+                .from('friends')
+                .select('*')
+                .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+            if (error) throw error;
+
+            const accepted = relations.filter(r => r.status === 'accepted');
+            const pending = relations.filter(r => r.status === 'pending');
+
+            // 2. Fetch friend profiles
+            const friendIds = accepted.map(r => r.user_id === user.id ? r.friend_id : r.user_id);
+            if (friendIds.length > 0) {
+                const { data: profiles, error: pErr } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .in('id', friendIds);
+                if (!pErr) setFriends(profiles || []);
+            } else {
+                setFriends([]);
+            }
+
+            // 3. Fetch friend requests (pending for ME as recipient)
+            const requestIds = pending.filter(r => r.friend_id === user.id).map(r => r.user_id);
+            if (requestIds.length > 0) {
+                const { data: reqProfiles, error: rErr } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .in('id', requestIds);
+                if (!rErr) setFriendRequests(reqProfiles || []);
+            } else {
+                setFriendRequests([]);
+            }
+        } catch (e) {
+            console.warn('Network sync interrupted (retrying in background):', e.message);
+        }
+    };
+
     const loadInitialData = async () => {
-        await Promise.all([loadTrades(), loadAccounts(), loadPillColors(), loadCopyGroups()]);
-        setTimeout(() => setIsLoading(false), 800);
+        // 1. Load Local Data First (Fast, No Network)
+        await Promise.all([
+            loadTrades(),
+            loadAccounts(),
+            loadPillColors(),
+            loadCopyGroups(),
+            loadDailyJournals()
+        ]);
+
+        // 2. Load Network Data (Sequential to prevent congestion)
+        // Delayed heavily to ensure renderer is idle and secure connection can be established
+        setTimeout(async () => {
+            if (user?.id) {
+                try {
+                    await loadFriends();
+                } catch (e) {
+                    console.warn('[Network] Initial social sync failed, retrying in 5s...', e.message);
+                    try {
+                        await new Promise(r => setTimeout(r, 5000));
+                        await loadFriends();
+                    } catch (retryErr) {
+                        console.error('[Network] Retry failed, will sync on next interval:', retryErr.message);
+                    }
+                }
+            }
+        }, 5000);
+
+        setTimeout(() => setIsLoading(false), 500);
     };
 
     const updateUserProfile = (newProfile) => {
         if (!user) return;
-        const updated = { ...userProfile, ...newProfile };
-        setUserProfile(updated);
-        localStorage.setItem(`userProfile_${user.id}`, JSON.stringify(updated));
-        scheduleCloudSync();
+        setUserProfile(prev => {
+            const updated = { ...prev, ...newProfile };
+            localStorage.setItem(`userProfile_${user.id}`, JSON.stringify(updated));
+            return updated;
+        });
+        setTimeout(scheduleCloudSync, 100);
     };
 
     const addTrade = async (trade) => {
@@ -510,9 +648,7 @@ export const TradeProvider = ({ children }) => {
         };
 
         try {
-            console.log('[addTrade] Sending trade to local DB:', JSON.stringify(tradeWithDetails, null, 2));
             const result = await window.electron.ipcRenderer.invoke('db-add-trade', tradeWithDetails);
-            console.log('[addTrade] Result from local DB:', result);
             if (result.success) {
                 await loadTrades();
                 scheduleCloudSync();
@@ -603,6 +739,76 @@ export const TradeProvider = ({ children }) => {
         }
     };
 
+    const saveDailyJournal = async (journal) => {
+        if (!window.electron) return false;
+        const result = await window.electron.ipcRenderer.invoke('db-save-daily-journal', {
+            ...journal,
+            user_id: user?.id
+        });
+        if (result.success) {
+            await loadDailyJournals();
+            scheduleCloudSync();
+            return true;
+        }
+        return false;
+    };
+
+    const sendFriendRequest = async (friendId) => {
+        if (!user) return { success: false, error: 'Auth required' };
+        const { error } = await supabase
+            .from('friends')
+            .insert({ user_id: user.id, friend_id: friendId, status: 'pending' });
+        if (error) return { success: false, error: error.message };
+        await loadFriends();
+        return { success: true };
+    };
+
+    const acceptFriendRequest = async (friendId) => {
+        if (!user) return { success: false, error: 'Auth required' };
+        const { error } = await supabase
+            .from('friends')
+            .update({ status: 'accepted' })
+            .match({ user_id: friendId, friend_id: user.id });
+        if (error) return { success: false, error: error.message };
+        await loadFriends();
+        return { success: true };
+    };
+
+    const syncProfileToCloud = async () => {
+        if (!user || !userProfile) return;
+
+        // Push user profile to the public 'profiles' table for social features
+        const profileData = {
+            id: user.id,
+            name: userProfile.name,
+            avatar_url: userProfile.avatar,
+            bio: userProfile.bio,
+            rank_name: stats.rank?.name,
+            rank_level: stats.level || 1, // Store numerical level for easier sorting/filtering
+            xp: Math.floor(stats.xp),
+            win_rate: (userProfile.privacy?.showPnL ?? true) ? parseFloat(stats.winRate) : null,
+            total_pnl: (userProfile.privacy?.showPnL ?? true) ? stats.totalPnL : null,
+            tag: userProfile.tag,
+            last_active: new Date().toISOString(),
+            is_public: userProfile.privacy?.isPublic ?? true
+        };
+
+        const { error } = await supabase
+            .from('profiles')
+            .upsert(profileData);
+
+        if (error) console.error('Failed to sync public profile:', JSON.stringify(error, null, 2));
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (user && appSettings.cloudSync) {
+                syncProfileToCloud();
+            }
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [userProfile, stats.xp, stats.winRate]);
+
     // --- Background Cloud Auto-Sync (debounced, with proper ID mapping) ---
     const backgroundSyncToCloud = useCallback(async () => {
         if (!appSettings.cloudSync || isSyncingRef.current) return;
@@ -622,8 +828,9 @@ export const TradeProvider = ({ children }) => {
             await supabase.from('trades').delete().eq('user_id', user.id);
             await supabase.from('accounts').delete().eq('user_id', user.id);
             await supabase.from('pill_colors').delete().eq('user_id', user.id);
+            await supabase.from('daily_journals').delete().eq('user_id', user.id);
             if (syncCapabilities.copyGroups) {
-                await supabase.from('copy_groups').delete().eq('user_id', user.id); // Cascades to members
+                await supabase.from('copy_groups').delete().eq('user_id', user.id); // Cascades
             }
 
             // Push accounts with user_id & ID Mapping
@@ -703,21 +910,31 @@ export const TradeProvider = ({ children }) => {
                 }
             }
 
-            // Push pill colors
+            // Push pill colors with explicit conflict resolution
             if (colorsRes.data && colorsRes.data.length > 0) {
                 const cleanedColors = colorsRes.data.map(({ id, ...rest }) => ({
                     ...rest,
                     user_id: user.id
                 }));
-                await supabase.from('pill_colors').upsert(cleanedColors);
+                const { error: colorErr } = await supabase
+                    .from('pill_colors')
+                    .upsert(cleanedColors, { onConflict: 'user_id,category,value' });
+
+                if (colorErr) console.error('[CloudSync] Pill Colors failed:', colorErr);
             }
 
-            // Push User Profile (Metadata)
-            if (userProfile) {
-                await supabase.auth.updateUser({
-                    data: { profile: userProfile }
-                });
+            // Push daily journals
+            const journalsRes = await window.electron.ipcRenderer.invoke('db-get-daily-journals');
+            if (journalsRes.success && journalsRes.data.length > 0) {
+                const cleanedJournals = journalsRes.data.map(({ id, ...rest }) => ({
+                    ...rest,
+                    user_id: user.id
+                }));
+                await supabase.from('daily_journals').insert(cleanedJournals);
             }
+
+            // PUSHING USER PROFILE TO METADATA IS REMOVED (ROOT CAUSE OF 264KB JWT BLOB)
+            // We already push to the 'profiles' table above, which is the correct way.
 
             console.log('[CloudSync] ✅ Auto-sync complete');
         } catch (err) {
@@ -726,7 +943,7 @@ export const TradeProvider = ({ children }) => {
             isSyncingRef.current = false;
             setIsSyncing(false);
         }
-    }, [appSettings.cloudSync, user]);
+    }, [appSettings.cloudSync, user, userProfile]);
 
     const scheduleCloudSync = useCallback(() => {
         if (!appSettings.cloudSync) return;
@@ -1073,7 +1290,12 @@ export const TradeProvider = ({ children }) => {
             ranks: RANKS, getAccountStats: getStatsWrapper,
             dateFilter, setDateFilter,
             analyticsFilters, setAnalyticsFilters,
-            isLoading, migrateToCloud, syncToCloud, importFromCloud, isSyncing
+            dailyJournals, saveDailyJournal,
+            friends, friendRequests, sendFriendRequest, acceptFriendRequest, loadFriends,
+            isDailyJournalOpen, setIsDailyJournalOpen,
+            syncProfileToCloud,
+            isLoading, migrateToCloud, syncToCloud, importFromCloud, isSyncing,
+            supabase
         }}>
             {children}
         </TradeContext.Provider>

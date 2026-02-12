@@ -3,7 +3,7 @@ import { useData } from '../context/TradeContext';
 import { soundEngine } from '../utils/SoundEngine';
 
 export default function Sidebar() {
-    const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats } = useData();
+    const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats, setIsDailyJournalOpen } = useData();
 
     return (
         <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-64'} flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden`}>
@@ -68,6 +68,16 @@ export default function Sidebar() {
             </nav>
 
             <div className="px-4 py-4 border-t border-slate-100 dark:border-slate-800/60 space-y-2 mb-2">
+                <NavItem
+                    icon="auto_stories"
+                    label="Daily Journal"
+                    active={false}
+                    isCollapsed={isSidebarCollapsed}
+                    onClick={() => {
+                        soundEngine.playClick();
+                        setIsDailyJournalOpen(true);
+                    }}
+                />
                 <NavItem
                     icon="settings"
                     label="Settings"

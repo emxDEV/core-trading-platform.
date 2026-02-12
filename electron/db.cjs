@@ -14,7 +14,7 @@ class DBManager {
         const userDataPath = app.getPath('userData');
         const dbPath = path.join(userDataPath, 'trades.db');
 
-        console.log('Database path:', dbPath);
+        if (!app.isPackaged) console.log('Database path:', dbPath);
 
         this.db = new Database(dbPath);
         this.createTables();
@@ -46,7 +46,7 @@ class DBManager {
             // 2. Column Migrations (Incremental)
             const acctInfo = this.db.prepare("PRAGMA table_info(accounts)").all();
             const acctCols = acctInfo.map(c => c.name);
-            console.log('[DB] Accounts columns:', acctCols);
+            if (!app.isPackaged) console.log('[DB] Accounts columns:', acctCols);
 
             const migrations = [
                 { col: 'capital', sql: 'ALTER TABLE accounts ADD COLUMN capital REAL DEFAULT 0' },
@@ -230,6 +230,21 @@ class DBManager {
                     }
                 }
             }
+
+            // 8. Daily Journals Table
+            const createDailyJournalsTable = `
+                CREATE TABLE IF NOT EXISTS daily_journals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT,
+                    date TEXT NOT NULL,
+                    goals TEXT NOT NULL,
+                    reflection TEXT,
+                    is_completed INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, date)
+                )
+            `;
+            this.db.exec(createDailyJournalsTable);
 
             // Re-enable global foreign keys
             this.db.pragma('foreign_keys = ON');
@@ -729,6 +744,55 @@ class DBManager {
                 return { success: true };
             } catch (error) {
                 console.error('DB Clear Error:', error);
+                return { success: false, error: error.message };
+            }
+        });
+
+        // Daily Journal Handlers
+        ipcMain.handle('db-get-daily-journals', (event, userId) => {
+            try {
+                const sql = userId
+                    ? 'SELECT * FROM daily_journals WHERE user_id = ? ORDER BY date DESC'
+                    : 'SELECT * FROM daily_journals WHERE user_id IS NULL ORDER BY date DESC';
+                const stmt = this.db.prepare(sql);
+                return { success: true, data: userId ? stmt.all(userId) : stmt.all() };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+        ipcMain.handle('db-get-journal-by-date', (event, { userId, date }) => {
+            try {
+                const sql = userId
+                    ? 'SELECT * FROM daily_journals WHERE user_id = ? AND date = ?'
+                    : 'SELECT * FROM daily_journals WHERE user_id IS NULL AND date = ?';
+                const stmt = this.db.prepare(sql);
+                return { success: true, data: userId ? stmt.get(userId, date) : stmt.get(date) };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+        ipcMain.handle('db-save-daily-journal', (event, journal) => {
+            try {
+                const stmt = this.db.prepare(`
+                    INSERT INTO daily_journals (user_id, date, goals, reflection, is_completed)
+                    VALUES (@user_id, @date, @goals, @reflection, @is_completed)
+                    ON CONFLICT(user_id, date) DO UPDATE SET
+                        goals = @goals,
+                        reflection = @reflection,
+                        is_completed = @is_completed
+                `);
+                const data = {
+                    user_id: journal.user_id || null,
+                    date: journal.date,
+                    goals: typeof journal.goals === 'string' ? journal.goals : JSON.stringify(journal.goals),
+                    reflection: journal.reflection || '',
+                    is_completed: journal.is_completed ? 1 : 0
+                };
+                stmt.run(data);
+                return { success: true };
+            } catch (error) {
                 return { success: false, error: error.message };
             }
         });

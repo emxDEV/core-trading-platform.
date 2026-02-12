@@ -38,3 +38,59 @@ ALTER TABLE pill_colors ENABLE ROW LEVEL SECURITY;
 -- 5. Create Policy for Pill Colors
 CREATE POLICY "Users can manage their own pill colors" ON pill_colors
     FOR ALL USING (auth.uid() = user_id);
+
+-- 6. Add Profiles Table (Social)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    name TEXT,
+    avatar_url TEXT,
+    bio TEXT,
+    rank_name TEXT,
+    rank_level INTEGER,
+    xp INTEGER,
+    win_rate REAL,
+    total_pnl REAL,
+    tag TEXT,
+    is_public BOOLEAN DEFAULT TRUE,
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Profiles are viewable by everyone" ON profiles
+    FOR SELECT USING (is_public = TRUE);
+
+CREATE POLICY "Users can update own profile" ON profiles
+    FOR ALL USING (auth.uid() = id);
+
+-- 7. Add Friends Table
+CREATE TABLE IF NOT EXISTS friends (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    friend_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'pending', -- 'pending', 'accepted'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, friend_id)
+);
+
+ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own friendships" ON friends
+    FOR ALL USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+-- 8. Add Daily Journals Table
+CREATE TABLE IF NOT EXISTS daily_journals (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    goals JSONB NOT NULL,
+    reflection TEXT,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, date)
+);
+
+ALTER TABLE daily_journals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own daily journals" ON daily_journals
+    FOR ALL USING (auth.uid() = user_id);

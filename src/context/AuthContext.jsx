@@ -77,10 +77,13 @@ export const AuthProvider = ({ children }) => {
                 redirectTo: 'core-app://auth/callback',
                 skipBrowserRedirect: true,
                 queryParams: {
-                    prompt: 'select_account'
+                    access_type: 'offline',
+                    prompt: 'consent'
                 }
             }
         });
+
+        console.log('[Auth] Initiated Google Login with URL:', data?.url);
 
         if (data?.url && window.electron?.ipcRenderer) {
             window.electron.ipcRenderer.send('open-external-url', data.url);
