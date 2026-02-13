@@ -6,52 +6,53 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-    
+  create-release:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create Release Draft
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Release ${{ github.ref_name }}
+          body: |
+            Release v${{ github.ref_name }}
+            ${{ github.event.head_commit.message }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  build:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
-
     steps:
-      - name: Checkout (Mac)
-        if: runner.os == 'macOS'
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Checkout (Windows Bypass)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          mkdir -p /d/build-source
-          cd /d/build-source
-          git clone https://github.com/emxDEV/core-trading-platform..git .
-          git checkout ${{ github.sha }}
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            cd /d/build-source && npm install
-          else
-            npm install
-          fi
-        shell: bash
+        run: npm install
 
       - name: Build and Publish
-        run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            cd /d/build-source && npm run electron:build -- --publish always
-          else
-            npm run electron:build -- --publish always
-          fi
+        run: npm run electron:build -- --publish always
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
