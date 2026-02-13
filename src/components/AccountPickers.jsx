@@ -26,26 +26,28 @@ export const PropFirmPicker = ({ selectedFirm, onSelect, isOpen, setOpen }) => {
                     e.stopPropagation();
                     setOpen(!isOpen);
                 }}
-                className="w-full flex items-center gap-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-left transition-all hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full flex items-center gap-3 bg-slate-900/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-left transition-all hover:border-white/20 focus:outline-none focus:ring-4 focus:ring-primary/10 backdrop-blur-md"
             >
                 {selected ? (
                     <>
                         <img src={selected.logo} alt={selected.name} className={`w-6 h-6 object-cover ${selected.className || 'rounded-md'}`} />
-                        <span className="dark:text-white font-semibold">{selected.name}</span>
+                        <span className="text-white font-black uppercase tracking-tight">{selected.name}</span>
                     </>
                 ) : (
-                    <span className="text-slate-400">Select Prop Firm...</span>
+                    <span className="text-slate-500 font-bold">Select Prop Firm...</span>
                 )}
-                <span className="material-symbols-outlined text-[14px] text-slate-400 ml-auto">{isOpen ? 'expand_less' : 'expand_more'}</span>
+                <span className="material-symbols-outlined text-[14px] text-slate-500 ml-auto">{isOpen ? 'expand_less' : 'expand_more'}</span>
             </button>
             {isOpen && coords && (
-                <SmartPortal coords={coords} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden focus:outline-none" style={{ width: coords.width }}>
-                    <div style={{ width: coords.width }}>
+                <SmartPortal coords={coords} className="bg-slate-900/95 border border-white/10 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden focus:outline-none backdrop-blur-[45px] relative" style={{ width: coords.width }}>
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+                    <div style={{ width: coords.width }} className="relative z-10">
                         {PROP_FIRMS.map(firm => (
                             <button
                                 key={firm.name}
                                 type="button"
-                                onClick={() => { onSelect(firm.name); }}
+                                onClick={() => { onSelect(firm.name); setOpen(false); }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all hover:bg-white/5 ${selectedFirm === firm.name ? 'bg-primary/5' : ''}`}
                             >
                                 <img src={firm.logo} alt={firm.name} className={`w-7 h-7 object-cover shadow-sm ${firm.className || 'rounded-lg'}`} style={{ boxShadow: `0 0 8px ${firm.color}30` }} />
@@ -128,7 +130,7 @@ export const AccountPicker = ({ selectedId, onSelect, isOpen, setOpen, onAddAcco
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${isMainBreached ? 'bg-rose-500/10 text-rose-400' : 'opacity-60'}`}>
                         {selectedAcc.type}
                     </span>
-                    <span className="material-symbols-outlined text-[14px] text-slate-400 ml-1">unfold_more</span>
+                    <span className="material-symbols-outlined text-[14px] text-slate-500 ml-1">unfold_more</span>
                 </button>
             ) : (
                 <button
@@ -138,20 +140,22 @@ export const AccountPicker = ({ selectedId, onSelect, isOpen, setOpen, onAddAcco
                         e.stopPropagation();
                         setOpen(!isOpen);
                     }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:border-primary/50 hover:text-primary text-sm font-semibold transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-white/20 bg-white/5 text-slate-400 hover:border-primary/50 hover:text-primary text-sm font-black uppercase tracking-tight transition-all"
                 >
                     <span className="material-symbols-outlined text-[16px]">account_balance</span>
-                    Select Account
+                    Select Tactical Unit
                     <span className="material-symbols-outlined text-[14px]">unfold_more</span>
                 </button>
             )}
 
             {isOpen && coords && (
-                <SmartPortal coords={coords} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden focus:outline-none" style={{ minWidth: Math.max(260, coords.width) }}>
-                    <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Choose Account</span>
+                <SmartPortal coords={coords} className="bg-slate-900/95 border border-white/10 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden focus:outline-none backdrop-blur-[45px] relative" style={{ minWidth: Math.max(260, coords.width) }}>
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+                    <div className="px-5 py-4 border-b border-white/5 bg-white/5 relative z-10">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tactical Fleet</span>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto">
+                    <div className="max-h-[300px] overflow-y-auto relative z-10 custom-scrollbar">
                         {accounts.map(acc => {
                             const isCurrent = String(acc.id) === String(selectedId);
                             const stats = getAccountStats(acc.id, accounts, trades);
@@ -169,12 +173,13 @@ export const AccountPicker = ({ selectedId, onSelect, isOpen, setOpen, onAddAcco
                                     onMouseLeave={() => setHoveredAccount(null)}
                                     onClick={() => {
                                         onSelect(acc.id);
+                                        setOpen(false);
                                     }}
                                     onContextMenu={(e) => {
                                         e.preventDefault();
                                         setAccountContextMenu({ acc, x: e.clientX, y: e.clientY });
                                     }}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${isCurrent ? 'bg-primary/5 text-white' : 'text-slate-300 hover:bg-white/5'} ${isBreached ? 'opacity-50' : ''}`}
+                                    className={`w-full flex items-center gap-3 px-5 py-4 text-xs transition-all ${isCurrent ? 'bg-primary/20 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'} ${isBreached ? 'opacity-40' : ''}`}
                                 >
                                     <div className="relative">
                                         {firm ? (
@@ -193,7 +198,6 @@ export const AccountPicker = ({ selectedId, onSelect, isOpen, setOpen, onAddAcco
                                             </div>
                                         )}
                                     </div>
-                                    <span className={`font-semibold ${isBreached ? 'line-through text-slate-500' : ''}`}>{acc.name}</span>
                                     <span className="text-[10px] uppercase tracking-wider opacity-50 ml-auto">{acc.type}</span>
                                     {isCurrent && <span className="material-symbols-outlined text-[14px] text-emerald-400">check</span>}
                                 </button>

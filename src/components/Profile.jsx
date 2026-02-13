@@ -216,7 +216,7 @@ export default function Profile() {
 
             {/* Upper Header: Tabs & Calibration */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 px-2">
-                <div className="flex p-1 bg-[#131525] border border-white/5 rounded-2xl w-fit">
+                <div className="flex p-1 bg-slate-100 dark:bg-white/5 border border-white/5 rounded-2xl w-fit backdrop-blur-md">
                     <button
                         onClick={() => setActiveTab('identity')}
                         className={`px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 ${activeTab === 'identity' ? 'bg-primary text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]' : 'text-slate-500 hover:text-white'}`}
@@ -232,7 +232,7 @@ export default function Profile() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden xl:flex items-center gap-3 px-6 py-3 bg-[#131525] border border-white/5 rounded-xl">
+                    <div className="hidden xl:flex items-center gap-3 px-6 py-3 bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-xl">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 font-mono">{t('system_ready')}</span>
                     </div>
@@ -253,7 +253,9 @@ export default function Profile() {
                     <div className="xl:col-span-3 space-y-6">
                         {/* Identity Hero Card - 'Tactical Dossier' Style */}
                         <div className="relative group/hero">
-                            <div className="relative bg-[#131525] border border-white/10 rounded-xl p-6 lg:p-10 flex items-center gap-12 shadow-2xl overflow-hidden">
+                            <div className="relative bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 lg:p-10 flex items-center gap-12 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                                {/* Glass Reflection Highlight */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px]" />
 
                                 {/* Avatar */}
@@ -323,7 +325,9 @@ export default function Profile() {
                             <StatTile label={t('active_rank')} value={stats.rank?.name.split(' ')[0]} icon="military_tech" color="text-amber-400" />
                         </div>
 
-                        <div className="bg-[#131525] border border-white/10 rounded-xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group/obj">
+                        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 lg:p-12 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group/obj">
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="flex items-center justify-between mb-12">
                                 <h3 className="text-2xl lg:text-3xl font-black text-white tracking-[0.05em] flex items-center gap-6 uppercase italic">
                                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -372,7 +376,9 @@ export default function Profile() {
                     </div>
 
                     <div className="xl:col-span-1 space-y-6">
-                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 relative overflow-hidden group/readiness shadow-2xl">
+                        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group/readiness shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 opacity-50" />
                             <div className="relative space-y-10">
                                 <div className="flex items-center justify-between h-4">
@@ -404,7 +410,9 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 lg:p-10 shadow-2xl relative overflow-hidden group/mastery">
+                        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group/mastery">
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-400/5 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
                             <div className="relative">
                                 <div className="flex items-center justify-between mb-12">
@@ -461,7 +469,9 @@ export default function Profile() {
             )}
 
             {contextMenu && (
-                <SmartPortal coords={{ x: contextMenu.x, y: contextMenu.y }} className="w-80 bg-[#131525]/95 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden focus:outline-none p-7 animate-in zoom-in-95 duration-200">
+                <SmartPortal coords={{ x: contextMenu.x, y: contextMenu.y }} className="w-80 bg-slate-900/95 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden focus:outline-none p-7 animate-in zoom-in-95 duration-200">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2" />
                     <div className="relative space-y-6">
                         {/* Dossier Header */}
@@ -572,7 +582,9 @@ export default function Profile() {
 
 function StatTile({ label, value, icon, color }) {
     return (
-        <div className="bg-[#131525] border border-white/5 rounded-xl p-8 shadow-2xl group transition-all duration-500">
+        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2rem] p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group transition-all duration-700 relative overflow-hidden">
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-8 border border-white/5 group-hover:bg-primary transition-all duration-500`}>
                 <span className={`material-symbols-outlined ${color} group-hover:text-white text-[22px]`}>{icon}</span>
             </div>
@@ -698,7 +710,9 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
             {/* Discovery Section - Compact */}
-            <div className="bg-[#131525] rounded-2xl p-6 lg:p-8 shadow-xl relative overflow-hidden group border border-white/10">
+            <div className="bg-slate-900/40 backdrop-blur-[45px] rounded-[2.5rem] p-6 lg:p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group border border-white/10">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                 <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
                 <div className="relative space-y-6">
@@ -782,7 +796,9 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* Active Syncs - Compact */}
                     <div className="lg:col-span-7 space-y-4">
-                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden h-full">
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic">
                                     <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
@@ -805,7 +821,7 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
                                         <div className="flex items-center gap-4 min-w-[160px]">
                                             <div className="relative">
                                                 <img src={friend.avatar_url} className="w-12 h-12 rounded-lg object-cover border border-white/10 transition-transform" alt="Friend" />
-                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded flex items-center justify-center text-white border-2 border-[#131525] shadow-lg">
+                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded flex items-center justify-center text-white border-2 border-slate-900 shadow-lg">
                                                     <span className="material-symbols-outlined text-[8px] font-black">bolt</span>
                                                 </div>
                                             </div>
@@ -853,7 +869,9 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
 
                     {/* Signals - Compact */}
                     <div className="lg:col-span-5 space-y-4">
-                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden h-full">
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic leading-none">
                                     <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shadow-inner">
@@ -892,7 +910,9 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
                     </div>
                 </div>
             ) : (
-                <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden animate-in fade-in duration-500">
+                <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden animate-in fade-in duration-500">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
                     <div className="flex items-center justify-between mb-10">
@@ -1132,13 +1152,15 @@ function CalibrationModal({
 
     return (
         <div
-            className={`fixed inset-0 z-[9999] flex items-center justify-center p-8 transition-all duration-500 ease-out ${isAnimating ? 'bg-[#0b0c14]/80 backdrop-blur-md opacity-100' : 'bg-[#0b0c14]/0 backdrop-blur-none opacity-0'}`}
+            className={`fixed inset-0 z-[9999] flex items-center justify-center p-8 transition-all duration-500 ease-out ${isAnimating ? 'bg-slate-950/80 backdrop-blur-xl opacity-100' : 'bg-[#0b0c14]/0 backdrop-blur-none opacity-0'}`}
             onClick={onClose}
         >
             <div
-                className={`w-full max-w-5xl max-h-[90vh] flex flex-col bg-[#131525] border border-white/10 rounded-[3.5rem] shadow-2xl relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-95 translate-y-8 opacity-0 blur-md'}`}
+                className={`w-full max-w-5xl max-h-[90vh] flex flex-col bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[3.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-95 translate-y-8 opacity-0 blur-md'}`}
                 onClick={e => e.stopPropagation()}
             >
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                 <div className="flex items-center justify-between p-12 pb-8 border-b border-white/5">
                     <div>
                         <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic">Redefine Identity</h2>
@@ -1147,8 +1169,8 @@ function CalibrationModal({
                             <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Authorized Calibration</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-transparent">
-                        <span className="material-symbols-outlined text-3xl">close</span>
+                    <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/10 group active:scale-95">
+                        <span className="material-symbols-outlined text-3xl group-hover:rotate-180 transition-transform">close</span>
                     </button>
                 </div>
 
@@ -1160,15 +1182,17 @@ function CalibrationModal({
                                 <div className="space-y-4">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Active Codename</label>
                                     <input
-                                        className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-8 py-6 outline-none text-slate-800 dark:text-white font-black uppercase tracking-widest text-lg focus:ring-4 focus:ring-primary/10 transition-all"
+                                        className="w-full bg-slate-900/40 dark:bg-white/[0.03] border border-white/10 rounded-2xl px-8 py-6 outline-none text-white font-black uppercase tracking-widest text-lg focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
                                         value={editData.name}
                                         onChange={e => setEditData({ ...editData, name: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-4">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Identity Visual (Avatar)</label>
-                                    <div className="flex items-center gap-8 p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-3xl">
-                                        <div className="w-28 h-28 rounded-3xl overflow-hidden border-2 border-primary/20 bg-slate-100 dark:bg-white/5 relative">
+                                    <div className="flex items-center gap-8 p-6 bg-slate-900/40 dark:bg-white/[0.02] border border-white/10 rounded-[2rem] shadow-inner relative overflow-hidden group">
+                                        {/* Glass Reflection Highlight */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+                                        <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-primary/20 bg-black relative z-10">
                                             <img src={editData.avatar} className="w-full h-full object-cover" alt="Preview" />
                                         </div>
                                         <div className="flex-1 space-y-3">
@@ -1187,7 +1211,7 @@ function CalibrationModal({
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Trading Philosophy</label>
                                     <textarea
                                         rows="4"
-                                        className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-[2.5rem] px-8 py-6 outline-none text-slate-800 dark:text-white font-medium text-lg italic leading-relaxed focus:ring-4 focus:ring-primary/10 transition-all"
+                                        className="w-full bg-slate-900/40 dark:bg-white/[0.03] border border-white/10 rounded-[2.5rem] px-8 py-6 outline-none text-white font-medium text-lg italic leading-relaxed focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
                                         value={editData.bio}
                                         onChange={e => setEditData({ ...editData, bio: e.target.value })}
                                     />
@@ -1209,7 +1233,7 @@ function CalibrationModal({
                                     <div className="space-y-4">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Risk Protocol</label>
                                         <select
-                                            className="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-5 outline-none text-slate-800 dark:text-white font-bold appearance-none focus:ring-4 focus:ring-primary/10"
+                                            className="w-full bg-slate-900/40 dark:bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-5 outline-none text-white font-bold appearance-none focus:ring-4 focus:ring-primary/10 shadow-inner"
                                             value={editData.riskAppetite}
                                             onChange={e => setEditData({ ...editData, riskAppetite: e.target.value })}
                                         >
@@ -1222,7 +1246,9 @@ function CalibrationModal({
 
                                 <div className="space-y-6">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Privacy Configuration</label>
-                                    <div className="grid gap-4 p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-3xl">
+                                    <div className="grid gap-4 p-6 bg-slate-900/40 dark:bg-white/[0.02] border border-white/10 rounded-3xl shadow-inner relative overflow-hidden group">
+                                        {/* Glass Reflection Highlight */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
                                         <PrivacyToggle
                                             label="Global Visibility"
                                             description="Allow other operators to find your codename."
@@ -1247,7 +1273,7 @@ function CalibrationModal({
                                         {(editData.goals || []).map(goal => (
                                             <div key={goal.id} className="flex gap-4 group">
                                                 <input
-                                                    className="flex-1 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 outline-none text-slate-700 dark:text-slate-200 font-bold text-sm"
+                                                    className="flex-1 bg-slate-900/40 dark:bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none text-white font-bold text-sm shadow-inner"
                                                     value={goal.text}
                                                     onChange={e => {
                                                         const updated = editData.goals.map(g => g.id === goal.id ? { ...g, text: e.target.value } : g);

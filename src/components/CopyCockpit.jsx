@@ -81,8 +81,10 @@ const AccountDropdown = ({ value, onChange, label, filterOut = [] }) => {
                             minWidth: Math.max(280, coords.width),
                             zIndex: 99999
                         }}
-                        className="bg-[#0F172A]/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden focus:outline-none animate-in fade-in zoom-in-95 duration-300"
+                        className="bg-slate-900/95 backdrop-blur-[45px] border border-white/10 rounded-[2rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden focus:outline-none animate-in fade-in zoom-in-95 duration-300 relative"
                     >
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="px-5 py-3 border-b border-white/5 bg-white/5">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Unit Matrix</span>
                         </div>
@@ -214,7 +216,9 @@ export default function CopyCockpit() {
 
             {/* Creation Modal / Inline Form */}
             {isCreatingGroup && (
-                <div className="bg-[#0F172A]/90 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-10 shadow-2xl animate-in zoom-in-95 duration-500 relative overflow-hidden group">
+                <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500 relative overflow-hidden group">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     <div className="absolute inset-0 bg-primary/5 opacity-50 blur-[80px] -z-10 pointer-events-none" />
 
                     <div className="flex items-center justify-between mb-10">
@@ -238,7 +242,7 @@ export default function CopyCockpit() {
                                 value={newGroupName}
                                 onChange={e => setNewGroupName(e.target.value)}
                                 placeholder="e.g. ALPHA_SYNC_OMEGA"
-                                className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-5 py-4 text-sm font-bold text-white focus:ring-4 ring-primary/10 border-primary/30 outline-none transition-all placeholder:text-slate-700"
+                                className="w-full bg-slate-900/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-bold text-white focus:ring-4 ring-primary/10 border-primary/30 outline-none transition-all placeholder:text-slate-700 shadow-inner"
                             />
                         </div>
                         <AccountDropdown
@@ -319,10 +323,13 @@ export default function CopyCockpit() {
                                 <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/10 via-cyan-400/5 to-primary/10 blur-md rounded-[3rem] opacity-0 group-hover/card:opacity-100 transition-opacity duration-1000 -z-10" />
                             )}
 
-                            <div className={`relative rounded-[3rem] border transition-all duration-700 overflow-hidden backdrop-blur-3xl
+                            <div className={`relative rounded-[3.5rem] border transition-all duration-700 overflow-hidden backdrop-blur-[45px]
                                 ${group.is_active
-                                    ? 'bg-[#0F172A]/90 border-white/10 hover:border-white/20 shadow-2xl shadow-black/50'
-                                    : 'bg-[#0F172A]/60 border-white/5 opacity-60 hover:opacity-100 hover:bg-[#0F172A]/80'}`}>
+                                    ? 'bg-slate-900/40 border-white/10 hover:border-white/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]'
+                                    : 'bg-slate-900/30 border-white/5 opacity-60 hover:opacity-100 hover:bg-slate-900/40'}`}>
+
+                                {/* Glass Reflection Highlight */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
 
                                 <div className="p-6 md:p-8">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -417,26 +424,26 @@ export default function CopyCockpit() {
                                             </div>
 
                                             {/* Action Hub */}
-                                            <div className="flex items-center gap-4 border-l border-white/5 pl-8 md:pl-10">
+                                            <div className="flex items-center gap-4 border-l border-white/10 pl-8 md:pl-10">
                                                 <button
                                                     onClick={() => updateCopyGroupStatus(group.id, !group.is_active)}
                                                     title={group.is_active ? "Deactivate Sync" : "Initialize Sync"}
                                                     className={`w-14 h-8 rounded-full transition-all duration-500 relative flex items-center px-1.5 shadow-inner
-                                                        ${group.is_active ? 'bg-primary shadow-primary/20' : 'bg-white/[0.05] border border-white/5'}`}
+                                                    ${group.is_active ? 'bg-primary shadow-primary/20' : 'bg-slate-900/40 border border-white/10'}`}
                                                 >
-                                                    <div className={`w-5 h-5 rounded-full bg-white shadow-xl transition-all duration-500 
-                                                        ${group.is_active ? 'translate-x-6' : 'translate-x-0 opacity-40'}`} />
+                                                    <div className={`w-5 h-5 rounded-full bg-white shadow-xl transition-all duration-500 relative z-10
+                                                    ${group.is_active ? 'translate-x-6' : 'translate-x-0 opacity-40'}`} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteGroup(group)}
-                                                    className="w-11 h-11 rounded-2xl bg-white/5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 border border-white/5 transition-all flex items-center justify-center group/del"
+                                                    className="w-11 h-11 rounded-2xl bg-white/5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 border border-white/10 transition-all flex items-center justify-center group/del"
                                                 >
                                                     <span className="material-symbols-outlined text-[20px] group-hover/del:scale-110 transition-transform">scan_delete</span>
                                                 </button>
                                                 <button
                                                     onClick={() => setExpandedGroupId(expandedGroupId === group.id ? null : group.id)}
-                                                    className={`w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-300 transition-all duration-500
-                                                        ${expandedGroupId === group.id ? 'rotate-180 bg-primary/10 border-primary/20 text-primary' : 'hover:bg-white/10 hover:border-white/20'}`}
+                                                    className={`w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 transition-all duration-500
+                                                    ${expandedGroupId === group.id ? 'rotate-180 bg-primary/10 border-primary/20 text-primary' : 'hover:bg-white/10 hover:border-white/20'}`}
                                                 >
                                                     <span className="material-symbols-outlined text-[24px]">expand_more</span>
                                                 </button>
@@ -465,7 +472,9 @@ export default function CopyCockpit() {
                                             </div>
 
                                             {isAddingMember && expandedGroupId === group.id && (
-                                                <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-8 animate-in slide-in-from-top-6 duration-500 relative overflow-hidden">
+                                                <div className="bg-slate-900/40 border border-white/10 rounded-[2rem] p-8 animate-in slide-in-from-top-6 duration-500 relative overflow-hidden shadow-inner">
+                                                    {/* Glass Reflection Highlight */}
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
                                                     <div className="absolute inset-0 bg-primary/5 blur-[40px] opacity-30 -z-10" />
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                                         <AccountDropdown
@@ -515,8 +524,10 @@ export default function CopyCockpit() {
                                                     const memberDailyPnL = memberDailyTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
 
                                                     return (
-                                                        <div key={member.id} className="group/item flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
-                                                            <div className="flex items-center gap-4">
+                                                        <div key={member.id} className="group/item flex items-center justify-between p-4 bg-slate-900/40 border border-white/10 rounded-[2rem] hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 relative overflow-hidden shadow-inner">
+                                                            {/* Glass Reflection Highlight */}
+                                                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                                            <div className="flex items-center gap-4 relative z-10">
                                                                 <div className="w-2 h-2 rounded-full bg-primary/40 shadow-inner group-hover/item:bg-primary group-hover/item:shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500" />
                                                                 <div>
                                                                     <div className="font-black text-[13px] text-white/90 uppercase tracking-tight">{accountName}</div>
@@ -537,7 +548,7 @@ export default function CopyCockpit() {
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleRemoveMember(member.id)}
-                                                                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all opacity-0 group-hover/item:opacity-100 translate-x-4 group-hover/item:translate-x-0 group/rem"
+                                                                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all opacity-0 group-hover/item:opacity-100 translate-x-4 group-hover/item:translate-x-0 group/rem relative z-10"
                                                                 >
                                                                     <span className="material-symbols-outlined text-[18px] group-hover/rem:rotate-90 transition-transform duration-500">close</span>
                                                                 </button>

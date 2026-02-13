@@ -481,8 +481,23 @@ export const TradeProvider = ({ children }) => {
 
     // Calculate filtered trades
     const filteredTrades = React.useMemo(() => {
-        return applyDateFilter(trades, dateFilter);
-    }, [trades, dateFilter]);
+        let result = applyDateFilter(trades, dateFilter);
+
+        // Apply Account Filter
+        if (analyticsFilters.accountId !== 'all') {
+            result = result.filter(t => String(t.account_id) === String(analyticsFilters.accountId));
+        }
+
+        // Apply Account Type Filter
+        if (analyticsFilters.type !== 'all') {
+            const matchingAccountIds = accounts
+                .filter(acc => acc.type === analyticsFilters.type)
+                .map(acc => String(acc.id));
+            result = result.filter(t => matchingAccountIds.includes(String(t.account_id)));
+        }
+
+        return result;
+    }, [trades, dateFilter, analyticsFilters, accounts]);
 
     useEffect(() => {
         calculateStats();

@@ -106,24 +106,26 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
     };
 
     return (
-        <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden flex flex-col h-full group hover:border-primary/20 transition-all duration-500">
+        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col h-full group hover:border-primary/40 transition-all duration-700">
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-48 h-48 bg-primary/5 blur-[100px] rounded-full -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[120px] rounded-full translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
             {/* Header Synchronization */}
-            <div className="flex items-center justify-between mb-10 relative z-10">
+            <div className="flex items-center justify-between mb-6 relative z-10">
                 <div className="text-left">
                     <div className="flex items-center gap-2 mb-2.5">
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Operational Performance</span>
                     </div>
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic leading-none mb-4">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none mb-3">
                         Monthly <span className={`${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-glow`}>Snapshot</span>
                     </h3>
                     <div className="flex items-center gap-6">
                         <div className="flex flex-col">
-                            <span className={`text-xl font-black tracking-tighter leading-none ${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <span className={`text-lg font-black tracking-tighter leading-none ${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                 {appSettings.maskBalances ? '••••••' : formatCurrency(monthStats.totalPnL)}
                             </span>
                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Net Yield</span>
@@ -131,9 +133,9 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                         <div className="w-px h-8 bg-white/5" />
                         <div className="flex flex-col">
                             <div className="flex items-baseline gap-1.5 leading-none">
-                                <span className="text-base font-black text-emerald-400">{monthStats.winDays}W</span>
+                                <span className="text-sm font-black text-emerald-400">{monthStats.winDays}W</span>
                                 <span className="text-[10px] text-slate-600 font-black">/</span>
-                                <span className="text-base font-black text-rose-400">{monthStats.lossDays}L</span>
+                                <span className="text-sm font-black text-rose-400">{monthStats.lossDays}L</span>
                             </div>
                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Status Quo</span>
                         </div>
@@ -172,7 +174,7 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-4 auto-rows-fr flex-1 relative z-10">
+            <div className="grid grid-cols-7 gap-3 auto-rows-fr flex-1 relative z-10">
                 {calendarDays.map((day, i) => {
                     const bgOpacity = getIntensity(day.pnl);
                     const isSelected = selectedDateString === day.dateString;
@@ -181,7 +183,7 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                         <div
                             key={i}
                             onClick={() => day.isCurrentMonth && onDateSelect && onDateSelect(day.date)}
-                            className={`aspect-square relative rounded-[1.5rem] border transition-all duration-500 group/cell overflow-hidden
+                            className={`relative rounded-[1.5rem] border transition-all duration-500 group/cell overflow-hidden min-h-[80px]
                                 ${!day.isCurrentMonth ? 'opacity-5 grayscale pointer-events-none' : 'cursor-pointer border-white/5'}
                                 ${day.hasData
                                     ? (day.pnl > 0

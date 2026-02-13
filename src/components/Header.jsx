@@ -28,7 +28,9 @@ const FilterDropdown = ({ label, options, active, onChange, icon }) => {
                 <span className="material-symbols-outlined text-[14px] opacity-40">expand_more</span>
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 z-[100] min-w-[160px] bg-white dark:bg-[#0F172A]/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl py-2 animate-in zoom-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 mt-2 z-[1000] min-w-[160px] bg-slate-900/60 border border-white/10 rounded-2xl shadow-2xl py-2 backdrop-blur-[45px] animate-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     {options.map(opt => (
                         <button
                             key={opt}
@@ -61,7 +63,9 @@ export default function Header() {
     };
 
     return (
-        <header className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 bg-white dark:bg-background-dark/50 backdrop-blur-sm sticky top-0 z-10">
+        <header className="h-20 border-b border-white/10 flex items-center justify-between px-10 bg-slate-900/10 backdrop-blur-[45px] sticky top-0 z-[100] relative">
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">
                 {currentView === 'journal' ? t('journal_overview') :
                     currentView === 'copy' ? t('copy_cockpit') :
@@ -71,7 +75,7 @@ export default function Header() {
                                     t('global_profile')}
             </h1>
             <div className="flex items-center gap-4">
-                {currentView === 'analytics' && (
+                {(currentView === 'analytics' || currentView === 'journal') && (
                     <div className="flex items-center gap-2 mr-2">
                         {/* Account Filter */}
                         <FilterDropdown
@@ -85,9 +89,8 @@ export default function Header() {
                             }}
                         />
 
-                        {/* Type Filter */}
                         <FilterDropdown
-                            label="Type"
+                            label="PNL Type"
                             icon="category"
                             options={['All', 'Evaluation', 'Funded', 'Live', 'Demo', 'Backtesting']}
                             active={analyticsFilters.type === 'all' ? 'All' : analyticsFilters.type}

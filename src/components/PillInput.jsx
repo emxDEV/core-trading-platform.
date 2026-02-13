@@ -196,55 +196,71 @@ export default function PillInput({
 
     return (
         <div ref={containerRef} className={`relative ${className}`}>
-            <div className={`flex flex-wrap items-center gap-1.5 min-h-[42px] bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/50 transition-all ${isOpen ? 'ring-2 ring-primary/50' : ''}`}>
+            <div className={`flex flex-wrap items-center gap-2 min-h-[58px] bg-slate-900/40 border border-white/10 rounded-2xl px-5 py-2.5 focus-within:ring-4 focus-within:ring-primary/10 transition-all backdrop-blur-md shadow-inner ${isOpen ? 'ring-4 ring-primary/10 border-primary/30' : ''}`}>
                 {allowMultiple && selectedValues.map((val) => renderPill(val, true))}
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
-                    onFocus={() => setIsOpen(true)}
-                    onBlur={() => {
-                        // Auto-select on blur if there's text (simulates hitting Enter)
-                        // This fixes issues where users type and click "Save" without hitting Enter
-                        if (search.trim()) {
-                            selectValue(search.trim());
-                        }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    placeholder={allowMultiple && selectedValues.length > 0 ? 'Add more...' : placeholder}
-                    className="flex-1 min-w-[80px] bg-transparent focus:outline-none text-sm dark:text-white placeholder-slate-400"
-                />
+                {!allowMultiple && value ? (
+                    <div className="flex items-center gap-2">
+                        {renderPill(value, true)}
+                    </div>
+                ) : (
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
+                        onFocus={() => setIsOpen(true)}
+                        onBlur={() => {
+                            if (search.trim()) {
+                                selectValue(search.trim());
+                            }
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder={allowMultiple && selectedValues.length > 0 ? 'Add more...' : placeholder}
+                        className="flex-1 min-w-[120px] bg-transparent focus:outline-none text-sm text-white font-bold tracking-tight placeholder-slate-600"
+                    />
+                )}
             </div>
 
             {isOpen && (filtered.length > 0 || search.trim()) && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                    {filtered.map((suggestion) => {
-                        const colors = getColor(suggestion);
-                        return (
+                <div className="absolute z-50 top-full left-0 right-0 mt-3 bg-slate-900/90 border border-white/10 rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden max-h-64 overflow-y-auto backdrop-blur-[45px] animate-in fade-in zoom-in-95 duration-200">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+
+                    <div className="px-5 py-4 border-b border-white/5 bg-white/5 relative z-10">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Suggested Identifiers</span>
+                    </div>
+
+                    <div className="relative z-10">
+                        {filtered.map((suggestion) => {
+                            const colors = getColor(suggestion);
+                            return (
+                                <button
+                                    key={suggestion}
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => selectValue(suggestion)}
+                                    className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-white/5 hover:text-white transition-all flex items-center justify-between group`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className={`w-2 h-2 rounded-full ${colors.dot} shadow-[0_0_8px_rgba(255,255,255,0.2)] group-hover:scale-125 transition-transform`}></span>
+                                        {suggestion}
+                                    </div>
+                                    <span className="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-40 transition-opacity">add_circle</span>
+                                </button>
+                            );
+                        })}
+                        {search.trim() && !suggestions.includes(search.trim()) && (
                             <button
-                                key={suggestion}
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => selectValue(suggestion)}
-                                className={`w-full text-left px-4 py-2.5 text-sm dark:text-slate-200 ${colors.hover} transition-colors flex items-center gap-2`}
+                                onClick={() => selectValue(search.trim())}
+                                className="w-full text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all flex items-center gap-3 border-t border-white/5"
                             >
-                                <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                                {suggestion}
+                                <span className="material-symbols-outlined text-[18px]">add_task</span>
+                                Commit "{search.trim()}" to Repository
                             </button>
-                        );
-                    })}
-                    {search.trim() && !suggestions.includes(search.trim()) && (
-                        <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => selectValue(search.trim())}
-                            className="w-full text-left px-4 py-2.5 text-sm text-primary font-medium hover:bg-primary/5 transition-colors flex items-center gap-2 border-t border-slate-100 dark:border-slate-800"
-                        >
-                            <span className="material-symbols-outlined text-sm">add</span>
-                            Create "{search.trim()}"
-                        </button>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
         </div>

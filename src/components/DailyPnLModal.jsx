@@ -84,78 +84,86 @@ export default function DailyPnLModal({ isOpen, onClose }) {
 
     return createPortal(
         <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isAnimating ? 'bg-[#020617]/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center p-6 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isAnimating ? 'bg-slate-950/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
             onClick={onClose}
         >
             <div
-                className={`w-full max-w-2xl bg-[#0F172A]/90 backdrop-blur-3xl border border-white/5 rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
+                className={`w-full max-w-2xl max-h-[90vh] flex flex-col bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[3.5rem] overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform relative ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
                 onClick={e => e.stopPropagation()}
             >
-                {/* Immersive Header */}
-                <div className="relative p-10 pb-6 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
 
-                    <div className="relative flex items-center justify-between">
+                {/* Header - Tactical Performance */}
+                <div className="flex justify-between items-center px-12 pt-12 pb-8 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-primary/5 opacity-30 blur-[60px] -z-10" />
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
+                            <span className="material-symbols-outlined text-primary text-[36px] drop-shadow-glow">
+                                monitoring
+                            </span>
+                        </div>
                         <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="px-2 py-0.5 rounded-md bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">Live Terminal</span>
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <span className="px-2 py-0.5 rounded-md bg-primary/20 text-primary text-[9px] font-black uppercase tracking-[0.2em]">Live Terminal</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                             </div>
-                            <h2 className="text-4xl font-black text-white tracking-tighter">Performance Hub</h2>
-                            <p className="text-slate-500 text-sm font-medium mt-1">
+                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic line-height-none">Performance Hub</h2>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5">
                                 <span className="text-slate-400">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}</span>, {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                             </p>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="w-12 h-12 flex items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] text-slate-500 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-[20px]">close</span>
-                        </button>
                     </div>
+                    <button
+                        onClick={onClose}
+                        className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 transition-all group/close border border-white/10 active:scale-90"
+                    >
+                        <span className="material-symbols-outlined text-[28px] group-hover/close:rotate-180 transition-transform duration-500">close</span>
+                    </button>
                 </div>
 
                 {/* Performance Feed */}
-                <div className="px-10 py-4 max-h-[50vh] overflow-y-auto space-y-4 custom-scrollbar">
+                <div className="px-12 py-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
                     {accountData.map((acc, idx) => (
                         <div
                             key={acc.id}
                             className={`group relative transition-all duration-700 ${isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}
                             style={{ transitionDelay: `${idx * 100}ms` }}
                         >
-                            <div className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-[2.25rem] p-6 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500 group/item">
-                                {/* Subtle Background Gradient for profit/loss */}
+                            <div className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-7 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500 group/item shadow-inner">
+                                {/* Glass Reflection Highlight */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
                                 <div className={`absolute inset-0 opacity-0 group-hover/item:opacity-[0.05] transition-opacity duration-1000 ${acc.dailyPnL >= 0 ? 'bg-gradient-to-br from-emerald-500 to-transparent' : 'bg-gradient-to-br from-rose-500 to-transparent'}`} />
 
                                 <div className="relative flex items-center justify-between">
-                                    <div className="flex items-center gap-5">
+                                    <div className="flex items-center gap-6">
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 shadow-inner ${acc.dailyPnL >= 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover/item:shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-rose-500/10 border-rose-500/20 text-rose-400 group-hover/item:shadow-[0_0_15px_rgba(244,63,94,0.3)]'}`}>
-                                            <span className={`material-symbols-outlined text-[28px]`}>
+                                            <span className={`material-symbols-outlined text-[28px] ${acc.dailyPnL >= 0 ? 'drop-shadow-glow' : ''}`}>
                                                 {acc.dailyPnL >= 0 ? 'trending_up' : 'trending_down'}
                                             </span>
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-white tracking-tight leading-tight group-hover/item:text-primary transition-colors">{acc.name}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{acc.type} Matrix</span>
-                                                <div className="w-1 h-1 rounded-full bg-white/10" />
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{acc.tradeCount} Operatives Today</span>
+                                            <h3 className="text-lg font-black text-white tracking-tight leading-tight group-hover/item:text-primary transition-colors uppercase italic">{acc.name}</h3>
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{acc.type} Unit</span>
+                                                <div className="w-1 h-1 rounded-full bg-slate-800" />
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{acc.tradeCount} Operatives Today</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-end gap-10">
+                                    <div className="flex items-end gap-12">
                                         {appSettings && !appSettings.hideCapitalOnDailyPnL && (
                                             <div className="text-right">
-                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1">Unit Balance</span>
-                                                <span className="text-slate-300 font-black tracking-tight text-sm">
+                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1.5 opacity-60">Unit Balance</span>
+                                                <span className="text-slate-300 font-black tracking-tight text-sm font-mono">
                                                     {appSettings.maskBalances ? '****' : formatCurrency(acc.balance)}
                                                 </span>
                                             </div>
                                         )}
                                         <div className="text-right min-w-[140px]">
-                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1 font-bold">Daily Net Returns</span>
-                                            <span className={`text-2xl font-black tracking-tighter drop-shadow-md ${acc.dailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1.5 opacity-60">Daily Net Returns</span>
+                                            <span className={`text-2xl font-black tracking-tighter drop-shadow-md italic ${acc.dailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                 {appSettings.maskBalances ? '****' : formatPnL(acc.dailyPnL, acc.capital)}
                                             </span>
                                         </div>
@@ -166,34 +174,35 @@ export default function DailyPnLModal({ isOpen, onClose }) {
                     ))}
 
                     {accountData.length === 0 && (
-                        <div className="py-20 text-center flex flex-col items-center">
-                            <div className="w-20 h-20 rounded-[2rem] bg-white/5 flex items-center justify-center mb-6 border border-white/5">
+                        <div className="py-24 text-center flex flex-col items-center">
+                            <div className="w-20 h-20 rounded-[2rem] bg-white/5 flex items-center justify-center mb-6 border border-white/5 shadow-inner">
                                 <span className="material-symbols-outlined text-4xl text-slate-600 drop-shadow-glow">monitoring</span>
                             </div>
-                            <h4 className="text-lg font-black text-white uppercase tracking-[0.2em]">Signal Missing</h4>
-                            <p className="text-slate-500 text-sm mt-2 max-w-[240px] font-medium italic">No active account synchronization detected for the current session cycle.</p>
+                            <h4 className="text-lg font-black text-white uppercase tracking-[0.2em] italic">Signal Missing</h4>
+                            <p className="text-slate-500 text-[11px] mt-2 max-w-[240px] font-black uppercase tracking-widest opacity-60 leading-relaxed italic">No active account synchronization detected for the current session cycle.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Premium Summary Badge */}
-                <div className="p-10 pt-4">
-                    <div className="relative group p-1 bg-gradient-to-br from-primary/20 via-white/5 to-emerald-500/20 rounded-[2.5rem] border border-white/5 overflow-hidden">
-                        <div className="absolute inset-0 bg-[#0B0E14] rounded-[2.4rem] m-0.5" />
+                <div className="px-12 py-10">
+                    <div className="relative group p-1 bg-gradient-to-br from-primary/20 via-white/5 to-emerald-500/20 rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
+                        <div className="absolute inset-0 bg-slate-900 shadow-inner rounded-[2.9rem] m-0.5" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
 
                         <div className="relative flex items-center justify-between p-8">
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div>
-                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-2">Aggregated Daily Summary</span>
-                                    <div className="flex items-center gap-6">
+                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em] block mb-4 italic">Aggregated Daily Summary</span>
+                                    <div className="flex items-center gap-10">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Total Executions</span>
-                                            <span className="text-xl font-black text-white">{totalTradesToday}</span>
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] leading-none mb-2 font-mono">Total Executions</span>
+                                            <span className="text-2xl font-black text-white italic tracking-tighter">{totalTradesToday}</span>
                                         </div>
-                                        <div className="w-px h-8 bg-white/5" />
+                                        <div className="w-[1px] h-10 bg-white/5" />
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Session Status</span>
-                                            <span className={`text-xl font-black ${totalDailyPnL >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] leading-none mb-2 font-mono">Session Status</span>
+                                            <span className={`text-2xl font-black italic tracking-tighter ${totalDailyPnL >= 0 ? 'text-emerald-500 shadow-emerald-500/20' : 'text-rose-500 shadow-rose-500/20'}`}>
                                                 {totalDailyPnL >= 0 ? 'IN PROFIT' : 'IN LOSS'}
                                             </span>
                                         </div>
@@ -203,8 +212,8 @@ export default function DailyPnLModal({ isOpen, onClose }) {
 
                             <div className="text-right">
                                 <div className="inline-flex flex-col items-end">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 leading-none">Net Result</span>
-                                    <span className={`text-6xl font-black tracking-tighter ${totalDailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-[0_0_25px_rgba(16,185,129,0.2)]`}>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-3 leading-none italic">Net Result</span>
+                                    <span className={`text-5xl font-black tracking-tighter italic ${totalDailyPnL >= 0 ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.3)]' : 'text-rose-400 drop-shadow-[0_0_25px_rgba(244,63,94,0.3)]'}`}>
                                         {appSettings.maskBalances ? '****' : formatPnL(totalDailyPnL, accountData.reduce((sum, a) => sum + (a.capital || 0), 0))}
                                     </span>
                                 </div>
@@ -212,21 +221,21 @@ export default function DailyPnLModal({ isOpen, onClose }) {
                         </div>
                     </div>
 
-                    <div className="mt-8 flex flex-col items-center gap-6">
+                    <div className="mt-10 flex flex-col items-center gap-8">
                         <button
                             onClick={handleShare}
                             disabled={isSharing}
-                            className={`group relative px-12 py-5 bg-primary text-white font-black rounded-2xl transition-all duration-500 hover:shadow-[0_0_40px_rgba(124,58,237,0.4)] active:scale-95 disabled:opacity-50 flex items-center gap-4 overflow-hidden`}
+                            className={`group relative px-14 py-6 bg-primary text-white font-black rounded-[2rem] transition-all duration-500 hover:shadow-[0_0_50px_rgba(124,58,237,0.4)] active:scale-95 disabled:opacity-50 flex items-center gap-4 overflow-hidden border border-white/20`}
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-12">share</span>
-                            <span className="text-[11px] uppercase tracking-[0.3em] font-black">{isSharing ? 'Encoding Matrix...' : 'Share Directive'}</span>
+                            <span className="material-symbols-outlined text-[24px] transition-transform group-hover:rotate-12 group-hover:scale-110 duration-500">share</span>
+                            <span className="text-[12px] uppercase tracking-[0.4em] font-black">{isSharing ? 'Encoding Matrix...' : 'Share Directive'}</span>
                         </button>
 
-                        <div className="flex items-center justify-center gap-2">
-                            <div className="w-1 h-1 rounded-full bg-slate-700" />
-                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Data synchronized via global terminal network</p>
-                            <div className="w-1 h-1 rounded-full bg-slate-700" />
+                        <div className="flex items-center justify-center gap-3 opacity-40 hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-[1px] bg-slate-700" />
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] font-mono text-center italic">Data synchronized via global terminal network</p>
+                            <div className="w-1.5 h-[1px] bg-slate-700" />
                         </div>
                     </div>
                 </div>

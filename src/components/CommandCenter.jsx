@@ -131,14 +131,16 @@ export default function CommandCenter() {
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[1000] flex items-start justify-center pt-[15vh] px-4 bg-[#020617]/40 backdrop-blur-sm animate-in fade-in duration-300"
+            className={`fixed inset-0 z-[1000] flex items-start justify-center pt-[15vh] px-4 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isCommandCenterOpen ? 'bg-slate-950/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
             onClick={() => setIsCommandCenterOpen(false)}
         >
             <div
                 ref={containerRef}
-                className="w-full max-w-2xl bg-[#0F172A]/90 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_32px_128px_-12px_rgba(0,0,0,0.8)] overflow-hidden scale-in-center animate-in zoom-in-95 duration-200"
+                className={`w-full max-w-2xl bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[3.5rem] overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform relative flex flex-col max-h-[90vh] ${isCommandCenterOpen ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.8] translate-y-20 opacity-0 blur-2xl'}`}
                 onClick={e => e.stopPropagation()}
             >
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                 {/* Search Header */}
                 <div className="relative border-b border-white/5 p-2">
                     <div className="flex items-center gap-4 px-4 h-14">

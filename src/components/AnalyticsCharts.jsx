@@ -134,7 +134,9 @@ export default function AnalyticsCharts() {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-8">
             {/* Equity Curve Optimization */}
-            <div className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl flex flex-col relative overflow-hidden group">
+            <div className="bg-slate-900/40 backdrop-blur-[45px] p-6 rounded-[2.5rem] border border-white/10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col relative overflow-hidden group transition-all duration-700 hover:border-white/20">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
                 <div className="flex items-center justify-between mb-3 relative z-10">
@@ -274,7 +276,9 @@ export default function AnalyticsCharts() {
             </div>
 
             {/* Top Strategies Optimization */}
-            <div className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="bg-slate-900/40 backdrop-blur-[45px] p-6 rounded-[2.5rem] border border-white/10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all duration-700 hover:border-white/20">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full translate-y-1/2 -translate-x-1/2" />
 
                 <div className="flex items-center justify-between mb-3">

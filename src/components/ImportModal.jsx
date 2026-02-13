@@ -167,8 +167,13 @@ export default function ImportModal() {
     };
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#020617]/80 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="bg-[#0F172A]/90 border border-white/10 rounded-[2.5rem] w-full max-w-2xl shadow-[0_64px_128px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
+        <div className={`fixed inset-0 z-[1000] flex items-center justify-center p-6 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isImportModalOpen ? 'bg-slate-950/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`} onClick={() => setIsImportModalOpen(false)}>
+            <div
+                className={`w-full max-w-2xl bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[3.5rem] overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform relative flex flex-col max-h-[90vh] ${isImportModalOpen ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
 
                 {/* Header Section */}
                 <div className="p-8 pb-4 relative">

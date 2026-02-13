@@ -253,7 +253,9 @@ export default function Settings() {
                 <div className="lg:col-span-8 space-y-4">
 
                     {/* Trading Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 relative overflow-hidden group shadow-sm">
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/[0.03] blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-primary/[0.05] transition-colors duration-1000" />
 
                         <div className="flex items-center gap-4 mb-8">
@@ -299,7 +301,9 @@ export default function Settings() {
                     </div>
 
                     {/* Privacy Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="flex items-center gap-4 mb-8">
                             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-sm">
                                 <span className="material-symbols-outlined text-indigo-500 text-[24px]">visibility_off</span>
@@ -333,7 +337,9 @@ export default function Settings() {
                     </div>
 
                     {/* Sound Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="flex items-center gap-4 mb-8">
                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-sm">
                                 <span className="material-symbols-outlined text-amber-500 text-[24px]">volume_up</span>
@@ -377,7 +383,9 @@ export default function Settings() {
                 <div className="lg:col-span-4 space-y-4">
 
                     {/* Intel Card */}
-                    <div className="bg-gradient-to-br from-[#1E1B2E] via-[#2A2445] to-[#1E1B2E] rounded-3xl p-8 text-white shadow-sm relative overflow-hidden group border border-slate-200/5 dark:border-white/5">
+                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-white/10 rounded-[2.5rem] p-8 text-white shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 transition-transform duration-[3s] group-hover:scale-125" />
 
                         <h4 className="text-xl font-black mb-6 leading-none tracking-tighter uppercase italic opacity-90">Operational Intel</h4>
@@ -407,7 +415,9 @@ export default function Settings() {
                     </div>
 
                     {/* Localization */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-8 shadow-sm">
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] space-y-8">
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] px-2 opacity-50 italic">{t('localization')}</h4>
 
                         <div className="space-y-6">
@@ -599,12 +609,14 @@ export default function Settings() {
                 <div className="lg:col-span-12 mt-5 pt-5 border-t border-slate-200 dark:border-slate-800">
                     <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6 px-2">Account</h3>
                     <div
-                        className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-3xl flex items-center justify-between group transition-all relative cursor-context-menu"
+                        className="p-6 bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] flex items-center justify-between group transition-all relative overflow-hidden cursor-context-menu shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]"
                         onContextMenu={(e) => {
                             e.preventDefault();
                             setContextMenu({ x: e.clientX, y: e.clientY });
                         }}
                     >
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="flex items-center gap-5">
                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20">
                                 <span className="material-symbols-outlined text-white text-[24px]">person</span>
@@ -634,10 +646,12 @@ export default function Settings() {
                 {contextMenu && createPortal(
                     <div className="fixed inset-0 z-[9998]" onClick={() => setContextMenu(null)}>
                         <div
-                            className="absolute bg-[#1A1D26] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 py-2 min-w-[220px] overflow-hidden"
+                            className="absolute bg-slate-900/95 backdrop-blur-[45px] border border-white/10 rounded-3xl shadow-2xl shadow-black/50 py-2 min-w-[220px] overflow-hidden"
                             style={{ top: contextMenu.y, left: contextMenu.x, animation: 'fadeIn 0.15s ease' }}
                             onClick={e => e.stopPropagation()}
                         >
+                            {/* Glass Reflection Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                             <div className="px-4 py-2.5 border-b border-white/5 mb-1">
                                 <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em]">Account Settings</p>
                             </div>
@@ -849,7 +863,7 @@ function MetricToggle({ icon, label, description, enabled, onClick, theme = "lig
 
 function ProtocolRow({ icon, label, description, enabled, onClick }) {
     return (
-        <div className="flex items-center gap-5 p-4 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800/50 rounded-2xl group hover:bg-white/[0.01] hover:border-primary/10 transition-all duration-500 shadow-sm">
+        <div className="flex items-center gap-5 p-4 bg-white/[0.02] border border-white/5 rounded-2xl group hover:bg-white/[0.04] hover:border-primary/10 transition-all duration-500 shadow-sm">
             <div className={`w-[48px] h-[48px] rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center transition-all duration-700 shadow-sm ${enabled ? 'text-primary border-primary/20 scale-105' : 'text-slate-400'}`}>
                 <span className={`material-symbols-outlined text-[24px] ${enabled ? 'font-fill' : ''}`}>{icon}</span>
             </div>
@@ -875,7 +889,7 @@ function TacticalSelect({ label, value, icon, options, onChange }) {
             <label className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] block px-1 group-hover:text-primary transition-colors">{label}</label>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-all duration-300 text-left shadow-sm"
+                className="w-full flex items-center justify-between p-5 bg-white/[0.03] border border-white/5 rounded-xl group-hover:bg-white/[0.06] transition-all duration-300 text-left shadow-sm"
             >
                 <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-slate-400 text-[20px] group-hover:text-primary transition-colors">{icon}</span>
@@ -885,7 +899,9 @@ function TacticalSelect({ label, value, icon, options, onChange }) {
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-3 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[400px] p-2 animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-3xl custom-scrollbar">
+                <div className="absolute z-50 top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-[45px] border border-white/10 rounded-[2rem] shadow-2xl overflow-y-auto max-h-[400px] p-2 animate-in fade-in slide-in-from-top-4 duration-500 custom-scrollbar">
+                    {/* Glass Reflection Highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     {options.map(opt => (
                         <button
                             key={opt}

@@ -103,15 +103,17 @@ const AccountCard = ({ acc, onReset, onContextMenu }) => {
     return (
         <div
             onContextMenu={(e) => onContextMenu(e, acc)}
-            className={`group relative overflow-hidden backdrop-blur-3xl rounded-3xl border transition-all duration-500 cursor-default select-none
+            className={`group relative overflow-hidden backdrop-blur-[45px] rounded-[2.5rem] border transition-all duration-700 cursor-default select-none
                 ${isBreached
-                    ? 'bg-rose-500/5 border-rose-500/20'
+                    ? 'bg-rose-500/5 border-rose-500/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)]'
                     : isUltraCritical
-                        ? 'bg-rose-500/10 border-rose-500/50 shadow-[0_0_40px_rgba(244,63,94,0.15)] animate-pulse'
+                        ? 'bg-rose-500/10 border-rose-500/50 shadow-[0_0_60px_rgba(244,63,94,0.25)] animate-pulse'
                         : isCritical
-                            ? 'bg-rose-500/5 border-rose-500/30 shadow-lg shadow-rose-500/5'
-                            : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/[0.07] hover:shadow-2xl hover:shadow-black/20'}`}
+                            ? 'bg-rose-500/5 border-rose-500/30 shadow-2xl shadow-rose-500/10'
+                            : 'bg-slate-900/40 border-white/10 hover:border-primary/40 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] hover:shadow-primary/10'}`}
         >
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             {/* Tactical Glow Backdrop */}
             {!isBreached && (
                 <div className={`absolute -right-12 -top-12 w-32 h-32 blur-[60px] opacity-20 transition-opacity duration-500 group-hover:opacity-30

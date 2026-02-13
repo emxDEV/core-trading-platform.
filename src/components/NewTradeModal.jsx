@@ -532,8 +532,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
     if (!isOpen && !isVisible) return null;
 
-    const inputClass = "w-full bg-[#0F172A]/40 dark:bg-black/20 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-primary/10 border-primary/20 hover:border-white/20 transition-all font-bold text-white text-sm placeholder:text-slate-600";
-    const labelClass = "block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2.5 px-1";
+    const inputClass = "w-full bg-slate-900/40 dark:bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-bold text-white text-sm placeholder:text-slate-700 shadow-inner relative z-10";
+    const labelClass = "block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-1";
 
     const tabs = [
         { id: 'general', label: 'General', icon: 'info' },
@@ -548,25 +548,27 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
             <AccountStatsTooltip hoveredAccount={hoveredAccount} accounts={accounts} trades={trades} getAccountStats={getAccountStats} />
             {createPortal(
                 <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.23, 1, 0.32, 1)] ${isAnimating ? 'bg-[#020617]/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
+                    className={`fixed inset-0 z-50 flex items-center justify-center p-6 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isAnimating ? 'bg-slate-950/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
                     onClick={onClose}
                 >
                     <div
-                        className={`bg-[#0F172A]/90 backdrop-blur-3xl rounded-[3rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/10 transition-all duration-700 ease-[cubic-bezier(0.34, 1.56, 0.64, 1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
+                        className={`bg-slate-900/40 backdrop-blur-[45px] rounded-[3.5rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-white/10 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform relative overflow-hidden ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
                         onClick={e => e.stopPropagation()}
                     >
+                        {/* Glass Reflection Highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         {/* Header - Tactical Execution */}
-                        <div className="flex justify-between items-center px-10 pt-10 pb-8 relative overflow-hidden">
+                        <div className="flex justify-between items-center px-12 pt-12 pb-8 relative overflow-hidden">
                             <div className="absolute inset-0 bg-primary/5 opacity-30 blur-[60px] -z-10" />
-                            <div className="flex items-center gap-5">
-                                <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
-                                    <span className="material-symbols-outlined text-primary text-[32px] drop-shadow-glow">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
+                                    <span className="material-symbols-outlined text-primary text-[36px] drop-shadow-glow">
                                         {tradeToEdit ? 'edit_square' : 'add_notes'}
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-black text-white tracking-tighter uppercase">{tradeToEdit ? 'Edit Execution' : 'Precision Entry'}</h2>
-                                    <div className="flex items-center gap-2 mt-1">
+                                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">{tradeToEdit ? 'Edit Execution' : 'Precision Entry'}</h2>
+                                    <div className="flex items-center gap-2 mt-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{tradeToEdit ? 'Updating Operational Parameters' : 'Deploying New Performance Data'}</span>
                                     </div>
@@ -574,19 +576,19 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white/10 hover:text-white transition-all group/close border border-transparent hover:border-white/10"
+                                className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 transition-all group/close border border-white/10 active:scale-90"
                             >
-                                <span className="material-symbols-outlined text-[24px] group-hover/close:rotate-90 transition-transform duration-500">close</span>
+                                <span className="material-symbols-outlined text-[28px] group-hover/close:rotate-180 transition-transform duration-500">close</span>
                             </button>
                         </div>
 
                         {/* Tabs - Command Navigation */}
-                        <div className="flex px-10 gap-1 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar">
+                        <div className="flex px-12 gap-1 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar bg-white/[0.02]">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-4 text-[10px] font-black uppercase tracking-[0.1em] transition-all relative
+                                    className={`flex items-center gap-2 px-6 py-5 text-[10px] font-black uppercase tracking-[0.1em] transition-all relative
                                         ${activeTab === tab.id
                                             ? 'text-primary'
                                             : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
@@ -792,12 +794,14 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                 </div>
                                             ) : (
                                                 /* Add Account Form - Tactical Unit Initialization */
-                                                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 space-y-6 relative overflow-hidden group/newacc animate-in zoom-in-95 duration-500">
-                                                    <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                                                <div className="rounded-[2.5rem] border border-white/10 bg-slate-900/40 backdrop-blur-md p-8 space-y-6 relative overflow-hidden group/newacc animate-in zoom-in-95 duration-500 shadow-inner">
+                                                    {/* Glass Reflection Highlight */}
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+                                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                                                         <span className="material-symbols-outlined text-[80px]">add_task</span>
                                                     </div>
 
-                                                    <div className="flex items-center gap-3 mb-2">
+                                                    <div className="flex items-center gap-3 mb-2 relative z-10">
                                                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
                                                             <span className="material-symbols-outlined text-[20px] text-emerald-400">add_circle</span>
                                                         </div>
@@ -813,7 +817,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         autoFocus
                                                     />
 
-                                                    <div className="flex flex-wrap gap-2.5">
+                                                    <div className="flex flex-wrap gap-2.5 relative z-10">
                                                         {ACCOUNT_TYPES.map(type => (
                                                             <button
                                                                 key={type}
@@ -821,14 +825,14 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                                 onClick={() => setNewAccountType(type)}
                                                                 className={`flex-1 min-w-[80px] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 transform active:scale-[0.98] ${newAccountType === type
                                                                     ? (TYPE_COLORS[type]?.active || '')
-                                                                    : 'bg-white/[0.02] text-slate-500 border-white/5 hover:border-white/10 hover:text-slate-300'}`}
+                                                                    : 'bg-white/[0.03] text-slate-500 border-white/10 hover:border-white/20 hover:text-slate-300'}`}
                                                             >
                                                                 {type}
                                                             </button>
                                                         ))}
                                                     </div>
 
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                                                         <div>
                                                             <label className={labelClass}>Initial Capital (USD)</label>
                                                             <CurrencyInput
@@ -853,7 +857,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     </div>
 
                                                     {(newAccountType === 'Evaluation' || newAccountType === 'Funded') && (
-                                                        <div className="grid grid-cols-2 gap-6 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                                        <div className="grid grid-cols-2 gap-6 p-6 bg-slate-900/40 border border-white/10 rounded-2xl relative z-10 shadow-inner">
                                                             {newAccountType === 'Evaluation' && (
                                                                 <div>
                                                                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-400/70 mb-2 block">Capture Target</label>
@@ -878,7 +882,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     )}
 
                                                     {newAccountType === 'Evaluation' && (
-                                                        <div className="p-5 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                                                        <div className="p-5 bg-amber-500/5 border border-amber-500/10 rounded-2xl relative z-10">
                                                             <label className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mb-2 block">Consistency Protocol (%)</label>
                                                             <div className="relative">
                                                                 <input
@@ -895,7 +899,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         </div>
                                                     )}
 
-                                                    <div className="flex gap-4 pt-4">
+                                                    <div className="flex gap-4 pt-4 relative z-10">
                                                         <button
                                                             type="button"
                                                             onClick={handleAccountSubmit}
@@ -930,22 +934,6 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         error={formErrors.date}
                                                     />
                                                     <ValidationTooltip message={formErrors.date} isVisible={!!formErrors.date} anchorRef={inputRefs.date} />
-                                                </div>
-                                                <div className="relative">
-                                                    <label className={labelClass}>Active Session</label>
-                                                    <div className="relative group/pill">
-                                                        <PillInput
-                                                            value={formData.trade_session}
-                                                            onChange={(val) => setFormData(prev => ({ ...prev, trade_session: val }))}
-                                                            suggestions={sessionSuggestions}
-                                                            placeholder="e.g. London"
-                                                            category="session"
-                                                            defaultColor="sky"
-                                                        />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
-                                                            <span className="material-symbols-outlined text-sm">schedule</span>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1000,8 +988,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, bias: 'Bullish' }))}
                                                             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border transition-all duration-300 transform active:scale-[0.98] ${formData.bias === 'Bullish'
-                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                                                : 'bg-white/[0.02] border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'}`}
+                                                                ? 'bg-emerald-500/20 text-emerald-400 border-white/20 shadow-lg shadow-emerald-500/10'
+                                                                : 'bg-slate-900/40 border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
                                                         >
                                                             <span className={`material-symbols-outlined text-[20px] ${formData.bias === 'Bullish' ? 'drop-shadow-glow' : ''}`}>trending_up</span>
                                                             <span className="text-[10px] font-black uppercase tracking-widest">Bullish</span>
@@ -1010,8 +998,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, bias: 'Bearish' }))}
                                                             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border transition-all duration-300 transform active:scale-[0.98] ${formData.bias === 'Bearish'
-                                                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                                                                : 'bg-white/[0.02] border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'}`}
+                                                                ? 'bg-rose-500/20 text-rose-400 border-white/20 shadow-lg shadow-rose-500/10'
+                                                                : 'bg-slate-900/40 border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
                                                         >
                                                             <span className={`material-symbols-outlined text-[20px] ${formData.bias === 'Bearish' ? 'drop-shadow-glow' : ''}`}>trending_down</span>
                                                             <span className="text-[10px] font-black uppercase tracking-widest">Bearish</span>
@@ -1021,18 +1009,18 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
                                                 <div>
                                                     <label className={labelClass}>Entry Vector</label>
-                                                    <div className="flex bg-white/[0.03] rounded-2xl p-1.5 border border-white/10 h-[62px]">
+                                                    <div className="flex bg-slate-900/40 rounded-2xl p-1.5 border border-white/10 h-[62px] shadow-inner relative z-10 overflow-hidden">
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, side: 'LONG' }))}
-                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'LONG' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'LONG' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                                                         >
                                                             LONG UNIT
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, side: 'SHORT' }))}
-                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'SHORT' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'SHORT' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                                                         >
                                                             SHORT UNIT
                                                         </button>
@@ -1077,7 +1065,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                         <div className="grid grid-cols-2 gap-8">
                                             <div>
                                                 <label className={labelClass}>Transmission Type</label>
-                                                <div className="flex gap-2.5 bg-white/[0.03] p-1.5 rounded-2xl border border-white/10 h-[62px]">
+                                                <div className="flex gap-2.5 bg-slate-900/40 p-1.5 rounded-2xl border border-white/10 h-[62px] shadow-inner relative z-10 overflow-hidden">
                                                     {['Market', 'Limit', 'Stop'].map(type => (
                                                         <button
                                                             key={type}
@@ -1085,7 +1073,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             onClick={() => setFormData(prev => ({ ...prev, order_type: type }))}
                                                             className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] ${formData.order_type === type
                                                                 ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/10'}`}
                                                         >
                                                             {type}
                                                         </button>
@@ -1130,17 +1118,19 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
                                         <div>
                                             <label className={labelClass}>Market Session</label>
-                                            <div className="flex gap-2.5 bg-white/[0.03] p-1.5 rounded-2xl border border-white/10 h-[62px]">
+                                            <div className="flex gap-2.5 bg-slate-900/40 p-1.5 rounded-2xl border border-white/10 h-[62px] shadow-inner relative z-10 overflow-hidden">
                                                 {['London', 'New York', 'Asia'].map(session => (
                                                     <button
                                                         key={session}
                                                         type="button"
                                                         onClick={() => setFormData(prev => ({ ...prev, trade_session: session }))}
                                                         className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2 ${formData.trade_session === session
-                                                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-                                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                                            ? session === 'Asia' ? 'bg-rose-500/20 text-rose-400 border-white/20 shadow-lg shadow-rose-500/10'
+                                                                : session === 'London' ? 'bg-sky-500/20 text-sky-400 border-white/20 shadow-lg shadow-sky-500/10'
+                                                                    : 'bg-emerald-500/20 text-emerald-400 border-white/20 shadow-lg shadow-emerald-500/10'
+                                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/10'}`}
                                                     >
-                                                        <span className="material-symbols-outlined text-[16px]">
+                                                        <span className={`material-symbols-outlined text-[16px] ${formData.trade_session === session ? 'drop-shadow-glow' : ''}`}>
                                                             {session === 'London' ? 'schedule' : session === 'New York' ? 'monitoring' : 'nights_stay'}
                                                         </span>
                                                         {session}
@@ -1213,9 +1203,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             key={emo.id}
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, sentiment_post: emo.id }))}
-                                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 ${formData.sentiment_post === emo.id
-                                                                ? 'bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                                                                : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 transform active:scale-95 ${formData.sentiment_post === emo.id
+                                                                ? 'bg-emerald-500/20 border-white/20 shadow-lg shadow-emerald-500/10'
+                                                                : 'bg-slate-900/40 border-white/10 text-slate-500 hover:border-white/20'
                                                                 }`}
                                                         >
                                                             <span className="text-2xl mb-2">{emo.icon}</span>
@@ -1225,7 +1215,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                 </div>
                                             </div>
 
-                                            <div className="h-px bg-white/5 my-4" />
+                                            <div className="h-px bg-white/5 my-6" />
 
                                             {/* Psychology Block */}
                                             <div className="group/text">
@@ -1241,7 +1231,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     placeholder="Document cognitive state during execution..."
                                                     value={formData.psychology}
                                                     onChange={handleChange}
-                                                    className="w-full bg-white/5 rounded-2xl border border-white/5 p-4 focus:outline-none focus:border-primary/30 text-white text-sm leading-relaxed resize-none placeholder-slate-600 transition-all"
+                                                    className="w-full bg-slate-900/40 rounded-2xl border border-white/10 p-5 focus:outline-none focus:ring-4 focus:ring-primary/10 text-white text-sm leading-relaxed resize-none placeholder-slate-700 transition-all shadow-inner"
                                                 ></textarea>
                                             </div>
 
@@ -1259,7 +1249,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     placeholder="Any protocol deviations or rule violations?"
                                                     value={formData.mistakes}
                                                     onChange={handleChange}
-                                                    className="w-full bg-white/5 rounded-2xl border border-white/5 p-4 focus:outline-none focus:border-rose-500/30 text-white text-sm leading-relaxed resize-none placeholder-slate-600 transition-all"
+                                                    className="w-full bg-slate-900/40 rounded-2xl border border-white/10 p-5 focus:outline-none focus:ring-4 focus:ring-rose-500/10 text-white text-sm leading-relaxed resize-none placeholder-slate-700 transition-all shadow-inner"
                                                 ></textarea>
                                             </div>
                                         </div>
@@ -1269,8 +1259,10 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                 {activeTab === 'journal' && (
                                     <div className="space-y-8">
                                         {/* Operational Scorecard */}
-                                        <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8">
-                                            <div className="flex items-center justify-between mb-8">
+                                        <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group/score shadow-inner">
+                                            {/* Glass Reflection Highlight */}
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+                                            <div className="flex items-center justify-between mb-8 relative z-10">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
                                                         <span className="material-symbols-outlined text-primary">analytics</span>
@@ -1287,8 +1279,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, model: String(star) }))}
                                                             className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all duration-300 transform active:scale-90 ${String(formData.model) === String(star)
-                                                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                                                                : 'bg-white/5 border-white/5 text-slate-600 hover:text-slate-400'}`}
+                                                                ? 'bg-amber-500/20 border-white/20 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                                                                : 'bg-white/5 border-white/10 text-slate-600 hover:text-slate-400 hover:bg-white/10'}`}
                                                         >
                                                             <span className={`material-symbols-outlined text-xl ${String(formData.model) === String(star) ? 'fill-1' : ''}`}>
                                                                 {String(formData.model) >= String(star) ? 'star' : 'star_border'}
@@ -1298,14 +1290,14 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
+                                            <div className="grid grid-cols-2 gap-4 relative z-10">
+                                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/10 flex flex-col items-center text-center shadow-inner">
                                                     <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Setup Quality</div>
                                                     <div className="text-sm font-black text-white italic tracking-tighter uppercase whitespace-nowrap">
                                                         {String(formData.model) === '5' ? 'A+ PERFECT' : String(formData.model) === '4' ? 'B+ SOLID' : String(formData.model) === '3' ? 'C NEUTRAL' : String(formData.model) === '2' ? 'D SUBPAR' : String(formData.model) === '1' ? 'F TRASH' : 'UNRATED'}
                                                     </div>
                                                 </div>
-                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
+                                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/10 flex flex-col items-center text-center shadow-inner">
                                                     <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Discipline Protocol</div>
                                                     <div className={`text-sm font-black italic tracking-tighter uppercase ${formData.mistakes ? 'text-rose-500' : 'text-emerald-500'}`}>
                                                         {formData.mistakes ? 'VIOLATED' : 'MAINTAINED'}
@@ -1314,7 +1306,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
                                         </div>
 
-                                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] overflow-hidden">
+                                        <div className="rounded-[2.5rem] border border-white/10 bg-slate-900/40 relative overflow-hidden shadow-inner group/notes">
+                                            {/* Glass Reflection Highlight */}
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                                             {/* Bias Block */}
                                             <div className="border-b border-white/5 group/text">
                                                 <div className="flex items-center justify-between px-8 pt-6 pb-3">
@@ -1426,7 +1420,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 gap-8">
                                             {/* Category 1: Execution */}
-                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
+                                                {/* Glass Reflection Highlight */}
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                                                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
                                                     <span className="material-symbols-outlined text-[120px]">target</span>
                                                 </div>
@@ -1437,7 +1433,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         </div>
                                                         <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Execution Matrix (LTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Entry Precision</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900/40 px-3 py-1 rounded-full border border-white/10 shadow-inner">Entry Precision</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_execution}
@@ -1446,7 +1442,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 2: Condition */}
-                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
+                                                {/* Glass Reflection Highlight */}
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                                                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
                                                     <span className="material-symbols-outlined text-[120px]">analytics</span>
                                                 </div>
@@ -1457,7 +1455,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         </div>
                                                         <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Structural Context (MTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Trend & Levels</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900/40 px-3 py-1 rounded-full border border-white/10 shadow-inner">Trend & Levels</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_condition}
@@ -1466,7 +1464,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 3: Narrative */}
-                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
+                                                {/* Glass Reflection Highlight */}
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                                                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
                                                     <span className="material-symbols-outlined text-[120px]">auto_stories</span>
                                                 </div>
@@ -1477,7 +1477,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                         </div>
                                                         <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Higher Narrative (HTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Bias Framework</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900/40 px-3 py-1 rounded-full border border-white/10 shadow-inner">Bias Framework</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_narrative}
@@ -1492,12 +1492,12 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
                         {/* Footer - Final Deployment */}
                         {!showCelebration && (
-                            <div className="px-10 py-8 border-t border-white/5 bg-white/[0.01] rounded-b-[3rem]">
+                            <div className="px-12 py-10 border-t border-white/5 bg-slate-900/40 backdrop-blur-md rounded-b-[3.5rem]">
                                 <button
                                     type="submit"
                                     form="tradeForm"
                                     disabled={!isTradeReady}
-                                    className={`w-full font-black py-5 rounded-2xl transition-all duration-500 transform relative overflow-hidden group/submit ${isTradeReady
+                                    className={`w-full font-black py-6 rounded-[2rem] transition-all duration-500 transform relative overflow-hidden group/submit ${isTradeReady
                                         ? 'bg-primary text-white hover:bg-primary-light shadow-[0_0_30px_rgba(99,102,241,0.3)] active:scale-[0.99] cursor-pointer'
                                         : 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed grayscale'
                                         }`}

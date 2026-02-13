@@ -6,7 +6,9 @@ export default function Sidebar() {
     const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats, setIsDailyJournalOpen, t, friendRequests } = useData();
 
     return (
-        <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-64'} flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden`}>
+        <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-64'} flex-shrink-0 border-r border-white/10 bg-slate-900/10 backdrop-blur-[45px] flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden relative`}>
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             <div className={`px-8 pt-10 pb-8 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-start'}`}>
                 <button
                     onClick={toggleSidebar}
@@ -118,11 +120,6 @@ export default function Sidebar() {
                     )}
                 </div>
 
-                {!isSidebarCollapsed && (
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 hover:opacity-100 transition-opacity">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">v1.1.3</span>
-                    </div>
-                )}
             </div>
         </aside>
     );

@@ -3,23 +3,31 @@ import { useData } from '../context/TradeContext';
 import AnimatedNumber from './AnimatedNumber';
 
 export default function OverviewStats() {
-    const { filteredTrades: trades, accounts, stats, appSettings, formatCurrency, formatPnL } = useData();
-    const [pnlFilter, setPnlFilter] = useState('Total');
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const { filteredTrades: trades, accounts, stats, appSettings, formatCurrency, formatPnL, analyticsFilters } = useData();
 
     const filterOptions = [
-        { label: 'Total PNL', value: 'Total', types: ['Live', 'Funded', 'Evaluation'], icon: 'payments' },
+        { label: 'Total PNL', value: 'all', types: ['Live', 'Funded', 'Evaluation'], icon: 'payments' },
         { label: 'Live PNL', value: 'Live', types: ['Live'], icon: 'sensors' },
         { label: 'Funded PNL', value: 'Funded', types: ['Funded'], icon: 'account_balance' },
-        { label: 'Eval PNL', value: 'Evaluation', types: ['Evaluation'], icon: 'assignment' },
+        { label: 'Evaluation PNL', value: 'Evaluation', types: ['Evaluation'], icon: 'assignment' },
         { label: 'Demo PNL', value: 'Demo', types: ['Demo'], icon: 'science' },
-        { label: 'Backtest PNL', value: 'Backtesting', types: ['Backtesting'], icon: 'history' },
+        { label: 'Backtesting PNL', value: 'Backtesting', types: ['Backtesting'], icon: 'history' },
     ];
 
-    const currentFilter = filterOptions.find(opt => opt.value === pnlFilter);
+    const currentFilter = filterOptions.find(opt => opt.value === analyticsFilters.type) || filterOptions[0];
 
     const filteredStats = useMemo(() => {
-        const matchingAccounts = accounts.filter(acc => currentFilter.types.includes(acc.type));
+        let matchingAccounts = accounts;
+        if (analyticsFilters.accountId !== 'all') {
+            matchingAccounts = accounts.filter(acc => String(acc.id) === String(analyticsFilters.accountId));
+        }
+        if (analyticsFilters.type !== 'all') {
+            matchingAccounts = matchingAccounts.filter(acc => acc.type === analyticsFilters.type);
+        } else if (currentFilter.value === 'all') {
+            // Default "Total" view usually includes these three for prop traders
+            matchingAccounts = matchingAccounts.filter(acc => ['Live', 'Funded', 'Evaluation'].includes(acc.type));
+        }
+
         const accountIds = matchingAccounts.map(acc => String(acc.id));
 
         const filteredTrades = trades.filter(t => accountIds.includes(String(t.account_id)));
@@ -34,14 +42,17 @@ export default function OverviewStats() {
             totalTrades: filteredTrades.length,
             winRate
         };
-    }, [trades, accounts, currentFilter]);
+    }, [trades, accounts, analyticsFilters, currentFilter]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Win Rate Card */}
-            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/5 p-6 rounded-[2rem] shadow-2xl relative group/winrate transition-all duration-500 hover:border-primary/20 hover:shadow-primary/5 flex flex-col min-h-[220px]">
+            <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 p-6 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative group/winrate transition-all duration-700 hover:border-primary/40 hover:shadow-primary/10 flex flex-col min-h-[220px] overflow-hidden">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+
                 {/* Immersive Background Elements */}
-                <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none -z-10">
+                <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none -z-10">
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/winrate:opacity-100 transition-opacity duration-700" />
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-125 transition-transform duration-[3s]" />
                 </div>
@@ -51,7 +62,7 @@ export default function OverviewStats() {
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] block mb-1 transition-colors group-hover/winrate:text-primary/70">Execution Accuracy</span>
                         <h3 className="text-base font-black text-white uppercase tracking-tighter italic">Win Rate</h3>
                     </div>
-                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] bg-emerald-500/5 border border-emerald-500/20 px-4 py-1.5 rounded-full shadow-lg shadow-emerald-500/5">{pnlFilter} Scope</span>
+                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] bg-emerald-500/5 border border-emerald-500/20 px-4 py-1.5 rounded-full shadow-lg shadow-emerald-500/5">{currentFilter.label} Scope</span>
                 </div>
 
                 <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center">
@@ -86,9 +97,12 @@ export default function OverviewStats() {
                 </div>
             </div>
 
-            {/* P/L Impact Card with Premium Selector */}
-            <div className={`bg-[#0F172A]/80 backdrop-blur-2xl border border-white/5 p-6 rounded-[2rem] shadow-2xl relative group/pnl transition-all duration-500 hover:border-primary/20 hover:shadow-primary/5 flex flex-col min-h-[220px] ${isFilterOpen ? 'z-50' : 'z-10'}`}>
-                <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none -z-10">
+            {/* P/L Impact Card - Now synchronized with Global Filter */}
+            <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 p-6 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative group/pnl transition-all duration-700 hover:border-primary/40 hover:shadow-primary/10 flex flex-col min-h-[220px] z-10 overflow-hidden">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+
+                <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none -z-10">
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/pnl:opacity-100 transition-opacity duration-700" />
                     <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full opacity-50 group-hover:scale-110 transition-transform duration-[3s]" />
                 </div>
@@ -103,42 +117,6 @@ export default function OverviewStats() {
                                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{currentFilter.label}</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all active:scale-90 shadow-xl shadow-black/40 group/btn ${isFilterOpen ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-primary'}`}
-                        >
-                            <span className="material-symbols-outlined text-[24px] group-hover/btn:rotate-180 transition-transform duration-700">query_stats</span>
-                        </button>
-
-                        {isFilterOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setIsFilterOpen(false)} />
-                                <div className="absolute top-full right-0 mt-4 z-50 w-72 bg-[#161B30] border border-white/10 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.9)] py-4 overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-white/10">
-                                    <div className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-white/5 mb-3 flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
-                                        Operational Basis
-                                    </div>
-                                    <div className="px-3 space-y-1.5">
-                                        {filterOptions.map(opt => (
-                                            <button
-                                                key={opt.value}
-                                                onClick={() => { setPnlFilter(opt.value); setIsFilterOpen(false); }}
-                                                className={`w-full flex items-center gap-4 px-5 py-3.5 text-[11px] font-black uppercase tracking-widest transition-all rounded-2xl group/item ${pnlFilter === opt.value
-                                                    ? 'bg-primary text-white shadow-2xl shadow-primary/40'
-                                                    : 'text-slate-500 hover:text-white hover:bg-white/5'
-                                                    }`}
-                                            >
-                                                <span className={`material-symbols-outlined text-[18px] transition-transform group-hover/item:scale-110 ${pnlFilter === opt.value ? 'opacity-100' : 'opacity-50'}`}>{opt.icon}</span>
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </div>
                 </div>
 
@@ -162,9 +140,12 @@ export default function OverviewStats() {
             </div>
 
             {/* Total Trades Card */}
-            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/5 p-6 rounded-[2rem] shadow-2xl relative group/volume transition-all duration-500 hover:border-primary/20 hover:shadow-primary/5 flex flex-col min-h-[220px]">
+            <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 p-6 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative group/volume transition-all duration-700 hover:border-primary/40 hover:shadow-primary/10 flex flex-col min-h-[220px] overflow-hidden">
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+
                 {/* Immersive Background Elements */}
-                <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none -z-10">
+                <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none -z-10">
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/volume:opacity-100 transition-opacity duration-700" />
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-125 transition-transform duration-[3s]" />
                 </div>

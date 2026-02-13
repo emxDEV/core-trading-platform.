@@ -60,12 +60,19 @@ export default function RecentTrades() {
     };
 
     const getPillStyles = (category, value, fallback = 'primary') => {
+        if (category === 'session') {
+            if (value === 'Asia') return COLOR_MAP.rose;
+            if (value === 'London') return COLOR_MAP.sky;
+            if (value === 'New York') return COLOR_MAP.emerald;
+        }
         const color = getPillColor(category, value) || fallback;
         return COLOR_MAP[color] || COLOR_MAP.primary;
     };
 
     return (
-        <div className="bg-white dark:bg-[#141625] rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden group">
+        <div className="bg-slate-900/40 backdrop-blur-[45px] rounded-[2.5rem] border border-white/10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all duration-700 hover:border-white/20">
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             {/* Background Decor */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -84,8 +91,8 @@ export default function RecentTrades() {
 
             <div className="overflow-x-auto max-h-[530px] overflow-y-auto relative z-10 custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 z-20 bg-white dark:bg-[#141625]">
-                        <tr className="text-[9px] uppercase font-black tracking-[0.2em] text-slate-400 dark:text-white/20 border-b border-slate-100 dark:border-white/5">
+                    <thead className="sticky top-0 z-20 bg-slate-900/40 backdrop-blur-xl">
+                        <tr className="text-[9px] uppercase font-black tracking-[0.2em] text-slate-500 border-b border-white/5">
                             <th className="px-8 py-4">Timestamp</th>
                             <th className="px-5 py-4">Asset</th>
                             <th className="px-5 py-4">Tactical Unit</th>

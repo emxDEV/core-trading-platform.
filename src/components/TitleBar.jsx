@@ -8,10 +8,10 @@ const TitleBar = () => {
 
     return (
         <div className="fixed top-0 left-0 w-full h-8 flex items-center justify-center z-[9999] drag-region select-none">
-            <div className="flex items-center gap-2 opacity-30 dark:opacity-20 group hover:opacity-100 transition-opacity duration-500 no-drag cursor-default">
+            <div className="flex items-center gap-2 opacity-40 group hover:opacity-100 transition-opacity duration-500 no-drag cursor-default">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] dark:text-white">core</span>
                 <div className="w-1 h-1 rounded-full bg-primary" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocol v1.0.7</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocol v1.1.3</span>
             </div>
 
             {/* Sync Indicator */}

@@ -164,7 +164,7 @@ const Analytics = () => {
                 insights: { bestModel: bestModel ? bestModel.name : 'N/A', consistencyScore: Math.round(consistencyScore) || 0 }
             };
         } catch (err) {
-            console.error("Error calculating analytics:", err);
+            console.error('Error calculating analytics:', err);
             return null;
         }
     }, [trades, accounts, analyticsFilters]);
@@ -177,10 +177,10 @@ const Analytics = () => {
                     <span className="material-symbols-outlined text-4xl text-primary/40">analytics</span>
                 </div>
                 <h2 className="text-2xl font-bold text-slate-300 mb-2">
-                    {totalLoaded === 0 ? "No Trades Yet" : "No Analytic Data"}
+                    {totalLoaded === 0 ? 'No Trades Yet' : 'No Analytic Data'}
                 </h2>
                 <p className="text-slate-500 max-w-md mb-6">
-                    {totalLoaded === 0 ? "Start journaling your trades." : `Found ${totalLoaded} trades, but couldn't generate analytics.`}
+                    {totalLoaded === 0 ? 'Start journaling your trades.' : `Found ${totalLoaded} trades, but couldn't generate analytics.`}
                 </p>
             </div>
         );
@@ -189,7 +189,7 @@ const Analytics = () => {
     return (
         <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <ViewHeader title="Analytics" accent="Center" subtitle="Deep level fleet intelligence & performance metrics" icon="analytics">
-                <div className="flex items-center gap-6 bg-[#0F172A]/50 border border-white/5 p-5 rounded-[2rem] backdrop-blur-xl shadow-2xl">
+                <div className="flex items-center gap-6 bg-slate-900/40 border border-white/10 p-5 rounded-[2.5rem] backdrop-blur-[45px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
                     <div className="flex flex-col items-end">
                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-0.5">Consistency Score</span>
                         <span className={`text-3xl font-black tracking-tighter italic ${analytics.insights.consistencyScore >= 70 ? 'text-emerald-400' : analytics.insights.consistencyScore >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>
@@ -225,7 +225,7 @@ const Analytics = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard title="Net P&L" value={formatCurrency(analytics.netPnL)} subValue={`${analytics.totalTrades} Trades`} color={analytics.netPnL >= 0 ? "emerald" : "rose"} icon="payments" />
+                <KPICard title="Net P&L" value={formatCurrency(analytics.netPnL)} subValue={`${analytics.totalTrades} Trades`} color={analytics.netPnL >= 0 ? 'emerald' : 'rose'} icon="payments" />
                 <KPICard title="Win Rate" value={`${analytics.winRate.toFixed(1)}%`} subValue={`PF: ${analytics.profitFactor.toFixed(2)}`} color="cyan" icon="donut_large" />
                 <KPICard title="Avg R:R" value={analytics.riskReward.toFixed(2)} subValue={`Avg Win: ${formatCurrency(analytics.avgWin)}`} color="violet" icon="balance" />
                 <KPICard title="Best Setup" value={analytics.insights.bestModel} subValue="Most Profitable" color="amber" icon="stars" />
@@ -234,8 +234,8 @@ const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     {/* Equity Curve */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="mb-6">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary text-xl">show_chart</span> Equity Curve
@@ -262,8 +262,8 @@ const Analytics = () => {
                     </div>
 
                     {/* Drawdown Visualizer */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-bl from-rose-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                             <span className="material-symbols-outlined text-rose-400 text-xl">trending_down</span> Drawdown from Peak
                         </h3>
@@ -287,8 +287,8 @@ const Analytics = () => {
                     </div>
 
                     {/* Mindset Matrix */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl hover:border-indigo-500/20 transition-all duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] hover:border-indigo-500/40 transition-all duration-700">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <div className="relative z-10">
                             <div className="mb-6">
                                 <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
@@ -363,8 +363,8 @@ const Analytics = () => {
 
                 <div className="space-y-6">
                     {/* Daily PnL */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-blue-500/20 transition-all duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group hover:border-blue-500/40 transition-all duration-700">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                             <span className="material-symbols-outlined text-blue-400 text-xl">bar_chart</span> Daily P&L
                         </h3>
@@ -399,8 +399,8 @@ const Analytics = () => {
                     </div>
 
                     {/* Bias Efficiency */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400 text-xl">psychology</span> Bias Efficiency
                         </h3>
@@ -418,8 +418,8 @@ const Analytics = () => {
                     </div>
 
                     {/* Symbol Matrix */}
-                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-emerald-500/20 transition-all duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group hover:border-emerald-500/40 transition-all duration-700">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                             <span className="material-symbols-outlined text-emerald-400 text-xl">pie_chart</span> Symbol Matrix
                         </h3>
@@ -455,7 +455,8 @@ const Analytics = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                 {/* Session Analysis */}
-                <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-primary/20 transition-all duration-500">
+                <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group hover:border-primary/40 transition-all duration-700">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary text-xl">radar</span> Session Dominance
                     </h3>
@@ -473,7 +474,8 @@ const Analytics = () => {
                 </div>
 
                 {/* Model Performance */}
-                <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-amber-500/20 transition-all duration-500">
+                <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group hover:border-amber-500/40 transition-all duration-700">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
@@ -484,7 +486,7 @@ const Analytics = () => {
                     </div>
                     <div className="space-y-4">
                         {analytics.modelPerformance.map((model, i) => (
-                            <div key={model.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all relative overflow-hidden">
+                            <div key={model.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] transition-all relative overflow-hidden group/item">
                                 <div className="flex items-center gap-4">
                                     <div className={`flex items-center justify-center w-8 h-8 rounded-xl text-xs font-black border ${i === 0 ? 'bg-amber-500' : 'bg-slate-800'} text-white`}>{i + 1}</div>
                                     <div>
@@ -495,7 +497,7 @@ const Analytics = () => {
                                 <div className="text-right">
                                     <p className={`text-base font-black ${model.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(model.pnl)}</p>
                                     <div className="w-24 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden ml-auto">
-                                        <div className={`h-full ${model.pnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: '60%' }} />
+                                        <div className={`h-full ${model.pnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'} transition-all duration-1000`} style={{ width: `${(model.wins / model.total) * 100}%` }} />
                                     </div>
                                 </div>
                             </div>
@@ -509,14 +511,16 @@ const Analytics = () => {
 
 const KPICard = ({ title, value, subValue, color, icon }) => {
     const colorClasses = {
-        emerald: "text-emerald-400", rose: "text-rose-400", cyan: "text-cyan-400", violet: "text-violet-400", amber: "text-amber-400"
+        emerald: 'text-emerald-400', rose: 'text-rose-400', cyan: 'text-cyan-400', violet: 'text-violet-400', amber: 'text-amber-400'
     };
     const iconColors = {
-        emerald: "bg-emerald-500/10 text-emerald-400", rose: "bg-rose-500/10 text-rose-400", cyan: "bg-cyan-500/10 text-cyan-400", violet: "bg-violet-500/10 text-violet-400", amber: "bg-amber-500/10 text-amber-400"
+        emerald: 'bg-emerald-500/10 text-emerald-400', rose: 'bg-rose-500/10 text-rose-400', cyan: 'bg-cyan-500/10 text-cyan-400', violet: 'bg-violet-500/10 text-violet-400', amber: 'bg-amber-500/10 text-amber-400'
     };
 
     return (
-        <div className="relative overflow-hidden bg-[#0F172A]/80 backdrop-blur-3xl border border-white/5 rounded-3xl p-6 hover:-translate-y-1 transition-all duration-500 shadow-xl group">
+        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 hover:-translate-y-1 transition-all duration-700 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] group">
+            {/* Glass Reflection Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-6">
                     <div className={`w-12 h-12 rounded-2xl ${iconColors[color]} flex items-center justify-center border border-white/5`}>

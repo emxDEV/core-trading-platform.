@@ -73,7 +73,7 @@ export default function Calendar() {
     }, [selectedDate, dailyJournals]);
 
     return (
-        <div className="flex flex-col h-full space-y-6">
+        <div className="flex flex-col h-full space-y-4">
             <ViewHeader
                 title="Trade"
                 accent="Calendar"
@@ -107,7 +107,7 @@ export default function Calendar() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
                 {/* Left: Huge Calendar */}
                 <div className="xl:col-span-2 flex flex-col min-h-0">
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-sm flex-1 flex flex-col min-h-0">
+                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-[2.5rem] p-5 backdrop-blur-sm flex-1 flex flex-col min-h-0">
                         <CalendarHeatmap
                             data={dailyData}
                             onDateSelect={(date) => setSelectedDate(date)}
@@ -303,10 +303,20 @@ export default function Calendar() {
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col text-right">
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Session</span>
-                                                    <span className="text-[11px] font-black text-slate-400 truncate">
-                                                        {trade.trade_session || trade.session || '—'}
-                                                    </span>
+                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Session</span>
+                                                    <div>
+                                                        {trade.trade_session || trade.session ? (
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${(trade.trade_session || trade.session) === 'Asia' ? COLOR_MAP.rose :
+                                                                    (trade.trade_session || trade.session) === 'London' ? COLOR_MAP.sky :
+                                                                        (trade.trade_session || trade.session) === 'New York' ? COLOR_MAP.emerald :
+                                                                            'text-slate-400 border-white/5'
+                                                                }`}>
+                                                                {trade.trade_session || trade.session}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[11px] font-black text-slate-600">—</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

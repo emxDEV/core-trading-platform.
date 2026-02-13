@@ -253,18 +253,26 @@ export default function DateRangePicker({ isOpen, onClose }) {
     return (
         <div
             ref={containerRef}
-            className="absolute top-full right-0 mt-2 z-50 bg-[#1e1e2e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden w-max origin-top-right animate-in fade-in zoom-in-95 duration-200"
+            className="absolute top-full right-0 mt-3 z-[1001] bg-[#0F172A]/98 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden w-max origin-top-right animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-500"
         >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-[#181825]">
-                <div className="flex items-center gap-4 text-sm font-medium text-slate-300">
-                    <span className={`${startDate ? 'text-white' : 'text-slate-500'}`}>
-                        {startDate ? formatDate(startDate) : 'Select Start'}
-                    </span>
-                    <span className="material-symbols-outlined text-slate-600 text-[16px]">arrow_right_alt</span>
-                    <span className={`${endDate ? 'text-white' : 'text-slate-500'}`}>
-                        {endDate ? formatDate(endDate) : 'Select End'}
-                    </span>
+            {/* Header - Kinetic Display */}
+            <div className="flex items-center justify-between px-10 py-8 border-b border-white/5 bg-white/[0.02]">
+                <div className="flex items-center gap-6">
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1.5 ml-0.5">Start Vector</span>
+                        <span className={`text-base font-black tracking-tight ${startDate ? 'text-white' : 'text-slate-600 italic'}`}>
+                            {startDate ? formatDate(startDate) : 'unassigned'}
+                        </span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-slate-600 text-[20px]">east</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1.5 ml-0.5">End Vector</span>
+                        <span className={`text-base font-black tracking-tight ${endDate ? 'text-white' : 'text-slate-600 italic'}`}>
+                            {endDate ? formatDate(endDate) : 'unassigned'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -306,34 +314,41 @@ export default function DateRangePicker({ isOpen, onClose }) {
                     </div>
                 </div>
 
-                {/* Sidebar Presets */}
-                <div className="bg-[#181825] border-t md:border-t-0 md:border-l border-white/5 p-2 w-full md:w-40 flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 py-1 mb-0.5">Presets</span>
+                {/* Sidebar Presets - Tactical Shortcuts */}
+                <div className="bg-white/[0.01] border-t md:border-t-0 md:border-l border-white/5 p-4 w-full md:w-48 flex flex-col gap-1.5">
+                    <div className="px-3 mb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="material-symbols-outlined text-[14px] text-primary">analytics</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Presets</span>
+                        </div>
+                        <div className="h-px w-full bg-gradient-to-r from-primary/30 to-transparent" />
+                    </div>
                     {getPresets().map(preset => (
                         <button
                             key={preset.label}
                             onClick={() => handlePresetClick(preset)}
-                            className="text-left px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-white/5 hover:text-white transition-all font-medium"
+                            className="text-left px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-white/5 hover:text-white transition-all duration-300 transform active:scale-[0.97] group flex items-center justify-between"
                         >
                             {preset.label}
+                            <span className="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">chevron_right</span>
                         </button>
                     ))}
                 </div>
             </div>
 
             {/* Footer / Actions */}
-            <div className="p-3 border-t border-white/5 bg-[#181825] flex justify-end gap-3">
+            <div className="p-6 border-t border-white/5 bg-white/[0.02] flex justify-end gap-4">
                 <button
                     onClick={onClose}
-                    className="px-3 py-1.5 text-slate-400 hover:text-white font-bold text-[10px] uppercase tracking-wide transition-colors"
+                    className="px-8 py-4 text-slate-500 hover:text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:bg-white/5 rounded-2xl"
                 >
-                    Close
+                    Cancel
                 </button>
                 <button
                     onClick={onClose}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] uppercase tracking-wide rounded-lg shadow-lg shadow-indigo-500/20 transition-all"
+                    className="px-10 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-light transition-all active:scale-95"
                 >
-                    Apply
+                    Apply Range
                 </button>
             </div>
         </div>

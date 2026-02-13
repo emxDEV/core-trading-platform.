@@ -114,7 +114,8 @@ export const CelebrationModal = ({ data, onClose }) => {
         if (setupData) {
             await updateAccount({
                 ...account,
-                ...setupData
+                ...setupData,
+                ...(type === 'RANK_UP' ? { type: 'Funded', is_ranked_up: true } : {})
             });
         }
 
