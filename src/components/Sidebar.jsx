@@ -120,7 +120,7 @@ export default function Sidebar() {
 
                 {!isSidebarCollapsed && (
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 hover:opacity-100 transition-opacity">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">v1.0.9</span>
+                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">v1.1.0</span>
                     </div>
                 )}
             </div>

@@ -29,7 +29,8 @@ export default function Settings() {
     useEffect(() => {
         if (!window.electron) return;
 
-        const handleUpdaterEvent = (event, data) => {
+        const handleUpdaterEvent = (data) => {
+            if (!data) return;
             console.log('[Updater Event]', data);
             switch (data.type) {
                 case 'checking':
@@ -526,7 +527,7 @@ export default function Settings() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black dark:text-white uppercase tracking-widest mb-1">Protocol Version</p>
-                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.0.9-stable</p>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.1.0-stable</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">

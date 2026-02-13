@@ -1,7 +1,7 @@
 {
   "name": "core",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.1.0",
   "author": "User",
   "type": "module",
   "main": "electron/main.cjs",
