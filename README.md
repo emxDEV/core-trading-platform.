@@ -1,16 +1,55 @@
-# React + Vite
+# ⚔️ CORE Trading Platform
+### High-Fidelity Tactical Command for Modern Traders
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CORE is a premium, offline-first trading journal and analytics suite designed for professional operators. It combines high-end aesthetics with deep-level performance intelligence to provide a comprehensive "Mission Control" for your trading fleet.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Release v1.0.8: "Tactical Command"
+**Latest Update: February 2026**
 
-## React Compiler
+This major update transforms the trade documentation workflow into a professional mission debriefing system.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 📝 Mission Debrief (Journaling 2.0)
+*   **Tactical Scorecard**: Advanced Star-Rating system (1-5) for execution quality.
+*   **Neural Tag Injectors**: Rapidly document market conditions (e.g., *Liquidity Sweep*, *FVG Gap*, *MSB*) with one-click quick-tags.
+*   **Professional Dossier UI**: Redesigned journaling blocks for Bias Analysis, Execution Review, and Post-Mortem summaries with a "military-grade" aesthetic.
+*   **Discipline Protocol Tracking**: Automatic grading of your operational discipline based on mission integrity.
 
-## Expanding the ESLint configuration
+### 🔍 Omni-Search Intelligence (Command Center)
+*   **Cmd + K Interface**: Instant access to the central intelligence hub from any operational view.
+*   **Asset Quick-Scan**: Rapid symbol lookup and performance analysis across your entire fleet.
+*   **Frictionless Navigation**: Keyboard-driven workspace manipulation for high-speed operation.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🖼️ Tactical Intelligence Uploader (Attachments)
+*   **Holographic Scanning**: New visual feedback for chart uploads with "Intelligence Ingestion" animations.
+*   **Scouting Metadata**: Automatic tracking IDs and metadata overlays for every attached visual asset.
+*   **Deep Inspection Preview**: Premium fullscreen overlay with high-resolution asset download capabilities.
+
+### 📊 Strategic Analytics & Fleet Management
+*   **Tactical Focus Mode**: Immersive asset-specific filtering with a dedicated "Engaged" status banner.
+*   **Session Vectoring**: New support for Market Session tracking (London, New York, Asia) to identify your most profitable operational windows.
+*   **Fleet Command Headers**: Improved visual hierarchy for multi-account synchronization and status monitoring.
+
+---
+
+## 🛠️ Technical Foundation
+*   **Core**: React + Vite (Ultra-low latency UI)
+*   **Database**: Supabase + Local Cache (Cloud-synced / Offline-available)
+*   **Architecture**: High-Performance IPC Proxy for secure data handling in Electron.
+*   **Design**: Glassmorphic "Midnight Gradient" design system with reactive animations.
+
+---
+
+## 📡 Deployment Commands
+```bash
+# Developer Environment Launch
+npm run electron:dev
+
+# Production Build Cycle
+npm run electron:build
+```
+
+---
+
+*“Maintain discipline through high-fidelity execution.”*
