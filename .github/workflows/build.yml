@@ -56,7 +56,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # DISABLE CACHES ON WINDOWS TO PREVENT DEFAULT PATH SCANS
+          cache: ${{ runner.os == 'macOS' && 'npm' || '' }}
 
       - name: Install Dependencies
         run: |
