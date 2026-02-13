@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ViewHeader from './ViewHeader';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/TradeContext';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +7,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { soundEngine } from '../utils/SoundEngine';
 
 export default function Settings() {
-    const { appSettings, updateAppSettings, filteredTrades, importFromCloud } = useData();
+    const { appSettings, updateAppSettings, filteredTrades, importFromCloud, t, userProfile, updateUserProfile } = useData();
     const { user, signOut, updateEmail, changePasswordWithVerify, updateDisplayName, resetPassword } = useAuth();
     const { showSuccess, showInfo } = useNotifications();
 
@@ -191,40 +192,30 @@ export default function Settings() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto py-12 px-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-            {/* Top Bar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em] opacity-80">Configuration Hub</span>
-                    </div>
-                    <h2 className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic leading-none">
-                        Settings
-                    </h2>
-                </div>
+        <div className="max-w-7xl mx-auto py-8 px-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <ViewHeader
+                title="System"
+                accent="Settings"
+                subtitle="Terminal configuration & user preferences"
+                icon="settings"
+            />
 
-                <div className="flex items-center gap-4">
-                    {/* Purge and Sync buttons removed */}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Main Settings Area */}
-                <div className="lg:col-span-8 space-y-5">
+                <div className="lg:col-span-8 space-y-4">
 
                     {/* Trading Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-12 relative overflow-hidden group shadow-sm">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 relative overflow-hidden group shadow-sm">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/[0.03] blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-primary/[0.05] transition-colors duration-1000" />
 
-                        <div className="flex items-center gap-4 mb-12">
+                        <div className="flex items-center gap-4 mb-8">
                             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-sm">
                                 <span className="material-symbols-outlined text-emerald-500 text-[24px]">query_stats</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Risk & Trading Metrics</h3>
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Risk & Trading Metrics</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                             <MetricToggle
                                 icon="percent"
                                 label="PnL Relativity"
@@ -260,12 +251,12 @@ export default function Settings() {
                     </div>
 
                     {/* Privacy Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-12 shadow-sm">
-                        <div className="flex items-center gap-4 mb-12">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                        <div className="flex items-center gap-4 mb-8">
                             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-sm">
                                 <span className="material-symbols-outlined text-indigo-500 text-[24px]">visibility_off</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Privacy & Experience</h3>
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Privacy & Experience</h3>
                         </div>
 
                         <div className="space-y-4">
@@ -294,15 +285,15 @@ export default function Settings() {
                     </div>
 
                     {/* Sound Block */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-12 shadow-sm">
-                        <div className="flex items-center gap-4 mb-12">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                        <div className="flex items-center gap-4 mb-8">
                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-sm">
                                 <span className="material-symbols-outlined text-amber-500 text-[24px]">volume_up</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Tactical Audio</h3>
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">Tactical Audio</h3>
                         </div>
 
-                        <div className="space-y-8">
+                        <div className="space-y-6">
                             <ProtocolRow
                                 icon={appSettings.soundEnabled ? "volume_up" : "volume_off"}
                                 label="Audio Feedback"
@@ -311,7 +302,7 @@ export default function Settings() {
                                 onClick={() => toggleSetting('soundEnabled')}
                             />
 
-                            <div className="bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800/60 rounded-2xl p-8 flex items-center justify-between gap-6">
+                            <div className="bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800/60 rounded-2xl p-6 flex items-center justify-between gap-6">
                                 <div className="flex-1">
                                     <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em] mb-1">Signal Intensity</h4>
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic">Global volume for tactical ticks</p>
@@ -335,15 +326,15 @@ export default function Settings() {
                 </div>
 
                 {/* Sidebar Settings Area */}
-                <div className="lg:col-span-4 space-y-5">
+                <div className="lg:col-span-4 space-y-4">
 
                     {/* Intel Card */}
-                    <div className="bg-gradient-to-br from-[#1E1B2E] via-[#2A2445] to-[#1E1B2E] rounded-[2.5rem] p-10 text-white shadow-sm relative overflow-hidden group border border-slate-200/5 dark:border-white/5">
+                    <div className="bg-gradient-to-br from-[#1E1B2E] via-[#2A2445] to-[#1E1B2E] rounded-3xl p-8 text-white shadow-sm relative overflow-hidden group border border-slate-200/5 dark:border-white/5">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 transition-transform duration-[3s] group-hover:scale-125" />
 
-                        <h4 className="text-2xl font-black mb-10 leading-none tracking-tighter uppercase italic opacity-90">Operational Intel</h4>
+                        <h4 className="text-xl font-black mb-6 leading-none tracking-tighter uppercase italic opacity-90">Operational Intel</h4>
 
-                        <div className="space-y-8 mb-12 border-b border-white/5 pb-10">
+                        <div className="space-y-6 mb-8 border-b border-white/5 pb-6">
                             <div className="flex justify-between items-center group/item">
                                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40 group-hover/item:text-white/70 transition-opacity">Engine</span>
                                 <span className="text-sm font-black text-cyan-400 uppercase tracking-tighter">Core v4.2.0</span>
@@ -368,30 +359,47 @@ export default function Settings() {
                     </div>
 
                     {/* Localization */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2rem] p-10 space-y-10 shadow-sm">
-                        <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] px-2 opacity-50 italic">Localization</h4>
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-8 shadow-sm">
+                        <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] px-2 opacity-50 italic">{t('localization')}</h4>
 
                         <div className="space-y-6">
                             <TacticalSelect
-                                label="Base Currency"
+                                label={t('base_currency')}
                                 value={appSettings.currency || 'USD'}
                                 icon="payments"
-                                options={['USD', 'EUR', 'GBP', 'JPY']}
+                                options={['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD']}
                                 onChange={(val) => updateAppSettings({ currency: val })}
                             />
                             <TacticalSelect
-                                label="Timezone"
-                                value={appSettings.timezone || 'UTC +1 (Madrid)'}
+                                label={t('timezone')}
+                                value={appSettings.timezone || 'UTC +1 (Madrid/Paris)'}
                                 icon="public"
-                                options={['UTC +1 (Madrid)', 'UTC +0 (London)', 'UTC -5 (NY)']}
+                                options={[
+                                    'UTC -12 (Baker Island)', 'UTC -11 (American Samoa)', 'UTC -10 (Hawaii)',
+                                    'UTC -9 (Alaska)', 'UTC -8 (Pacific Time)', 'UTC -7 (Mountain Time)',
+                                    'UTC -6 (Central Time)', 'UTC -5 (Eastern Time)', 'UTC -4 (Atlantic Time)',
+                                    'UTC -3 (Argentina)', 'UTC -2 (South Georgia)', 'UTC -1 (Azores)',
+                                    'UTC +0 (London)', 'UTC +1 (Madrid/Paris)', 'UTC +2 (Cairo/Athens)',
+                                    'UTC +3 (Moscow/Dubai)', 'UTC +4 (Abu Dhabi)', 'UTC +5 (Karachi)',
+                                    'UTC +6 (Dhaka)', 'UTC +7 (Bangkok)', 'UTC +8 (Singapore/Hong Kong)',
+                                    'UTC +9 (Tokyo/Seoul)', 'UTC +10 (Sydney/Brisbane)', 'UTC +11 (Solomon Islands)',
+                                    'UTC +12 (Auckland)', 'UTC +13 (Samoa)', 'UTC +14 (Line Islands)'
+                                ]}
                                 onChange={(val) => updateAppSettings({ timezone: val })}
                             />
                             <TacticalSelect
-                                label="Language"
+                                label={t('language')}
                                 value={appSettings.language || 'English (US)'}
                                 icon="language"
                                 options={['English (US)', 'German', 'Spanish']}
                                 onChange={(val) => updateAppSettings({ language: val })}
+                            />
+                            <TacticalSelect
+                                label={t('week_start')}
+                                value={appSettings.weekStart === 'MO' ? t('monday') : t('sunday')}
+                                icon="calendar_today"
+                                options={[t('monday'), t('sunday')]}
+                                onChange={(val) => updateAppSettings({ weekStart: val === t('monday') ? 'MO' : 'SU' })}
                             />
                         </div>
                     </div>
@@ -402,10 +410,10 @@ export default function Settings() {
                     <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8 px-2">Data Management</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Tactical Export */}
-                        <div className="p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2rem] flex items-center justify-between group transition-all hover:bg-white/[0.02]">
-                            <div className="flex items-center gap-6">
-                                <div className="w-14 h-14 rounded-2xl bg-sky-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-3 shadow-sm">
-                                    <span className="material-symbols-outlined text-sky-500 text-[32px]">system_update_alt</span>
+                        <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-3xl flex items-center justify-between group transition-all hover:bg-white/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-3 shadow-sm">
+                                    <span className="material-symbols-outlined text-sky-500 text-[28px]">system_update_alt</span>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs font-black dark:text-white uppercase tracking-widest">Tactical Export</p>
@@ -421,10 +429,10 @@ export default function Settings() {
                         </div>
 
                         {/* Sync with Cloud */}
-                        <div className="p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2rem] flex items-center justify-between group transition-all hover:bg-amber-500/[0.02]">
-                            <div className="flex items-center gap-6">
-                                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-180 shadow-sm">
-                                    <span className="material-symbols-outlined text-amber-500 text-[32px]">sync</span>
+                        <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-3xl flex items-center justify-between group transition-all hover:bg-amber-500/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-180 shadow-sm">
+                                    <span className="material-symbols-outlined text-amber-500 text-[28px]">sync</span>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs font-black dark:text-white uppercase tracking-widest">Sync with Cloud</p>
@@ -440,10 +448,10 @@ export default function Settings() {
                         </div>
 
                         {/* Hard Reset */}
-                        <div className="p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2rem] flex items-center justify-between group transition-all hover:bg-rose-500/[0.02]">
-                            <div className="flex items-center gap-6">
-                                <div className="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-[-3deg] shadow-sm">
-                                    <span className="material-symbols-outlined text-rose-500 text-[32px]">dangerous</span>
+                        <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-3xl flex items-center justify-between group transition-all hover:bg-rose-500/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-[-3deg] shadow-sm">
+                                    <span className="material-symbols-outlined text-rose-500 text-[28px]">dangerous</span>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs font-black dark:text-white uppercase tracking-widest">Hard Reset</p>
@@ -513,17 +521,17 @@ export default function Settings() {
 
                 {/* Account Section */}
                 <div className="lg:col-span-12 mt-5 pt-5 border-t border-slate-200 dark:border-slate-800">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8 px-2">Account</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6 px-2">Account</h3>
                     <div
-                        className="p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2rem] flex items-center justify-between group transition-all relative cursor-context-menu"
+                        className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-3xl flex items-center justify-between group transition-all relative cursor-context-menu"
                         onContextMenu={(e) => {
                             e.preventDefault();
                             setContextMenu({ x: e.clientX, y: e.clientY });
                         }}
                     >
-                        <div className="flex items-center gap-6">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20">
-                                <span className="material-symbols-outlined text-white text-[28px]">person</span>
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20">
+                                <span className="material-symbols-outlined text-white text-[24px]">person</span>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-xs font-black dark:text-white uppercase tracking-widest">
@@ -744,14 +752,14 @@ function MetricToggle({ icon, label, description, enabled, onClick, theme = "lig
     return (
         <button
             onClick={onClick}
-            className={`p-8 rounded-2xl border transition-all duration-500 text-left group flex flex-col items-start w-full relative overflow-hidden ${theme === 'dark'
+            className={`p-6 rounded-2xl border transition-all duration-500 text-left group flex flex-col items-start w-full relative overflow-hidden ${theme === 'dark'
                 ? 'bg-white/5 border-white/10 hover:bg-white/15'
                 : enabled
                     ? 'bg-primary/[0.05] border-primary/30 shadow-inner'
                     : 'bg-slate-50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800/80 hover:border-primary/20 hover:bg-white/[0.02]'
                 }`}
         >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-8 transition-all duration-700 shadow-sm ${enabled ? 'bg-primary text-white scale-105' : 'bg-slate-100 dark:bg-white/5 text-slate-400 group-hover:text-primary border border-transparent dark:border-white/5'
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-6 transition-all duration-700 shadow-sm ${enabled ? 'bg-primary text-white scale-105' : 'bg-slate-100 dark:bg-white/5 text-slate-400 group-hover:text-primary border border-transparent dark:border-white/5'
                 }`}>
                 <span className="material-symbols-outlined text-[24px]">{icon}</span>
             </div>
@@ -765,9 +773,9 @@ function MetricToggle({ icon, label, description, enabled, onClick, theme = "lig
 
 function ProtocolRow({ icon, label, description, enabled, onClick }) {
     return (
-        <div className="flex items-center gap-6 p-6 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800/50 rounded-2xl group hover:bg-white/[0.01] hover:border-primary/10 transition-all duration-500 shadow-sm">
-            <div className={`w-[56px] h-[56px] rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center transition-all duration-700 shadow-sm ${enabled ? 'text-primary border-primary/20 scale-105' : 'text-slate-400'}`}>
-                <span className={`material-symbols-outlined text-[28px] ${enabled ? 'font-fill' : ''}`}>{icon}</span>
+        <div className="flex items-center gap-5 p-4 bg-slate-50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800/50 rounded-2xl group hover:bg-white/[0.01] hover:border-primary/10 transition-all duration-500 shadow-sm">
+            <div className={`w-[48px] h-[48px] rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center transition-all duration-700 shadow-sm ${enabled ? 'text-primary border-primary/20 scale-105' : 'text-slate-400'}`}>
+                <span className={`material-symbols-outlined text-[24px] ${enabled ? 'font-fill' : ''}`}>{icon}</span>
             </div>
             <div className="flex-1">
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-[0.2em] mb-1 group-hover:text-primary transition-colors leading-none">{label}</h4>
@@ -801,7 +809,7 @@ function TacticalSelect({ label, value, icon, options, onChange }) {
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-3 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2 animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-3xl">
+                <div className="absolute z-50 top-full left-0 right-0 mt-3 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[400px] p-2 animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-3xl custom-scrollbar">
                     {options.map(opt => (
                         <button
                             key={opt}

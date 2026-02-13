@@ -149,6 +149,8 @@ class DBManager {
                     images_condition TEXT,
                     images_narrative TEXT,
                     trade_session TEXT,
+                    sentiment_pre TEXT,
+                    sentiment_post TEXT,
                     account_type TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
@@ -218,6 +220,8 @@ class DBManager {
                 { col: 'images_execution', sql: 'ALTER TABLE trades ADD COLUMN images_execution TEXT' },
                 { col: 'images_condition', sql: 'ALTER TABLE trades ADD COLUMN images_condition TEXT' },
                 { col: 'images_narrative', sql: 'ALTER TABLE trades ADD COLUMN images_narrative TEXT' },
+                { col: 'sentiment_pre', sql: 'ALTER TABLE trades ADD COLUMN sentiment_pre TEXT' },
+                { col: 'sentiment_post', sql: 'ALTER TABLE trades ADD COLUMN sentiment_post TEXT' },
             ];
 
             for (const m of attachmentMigrations) {
@@ -296,6 +300,7 @@ class DBManager {
                         psychology, mistakes, comment_bias, comment_execution, 
                         comment_problems, comment_fazit, image_paths, 
                         images_execution, images_condition, images_narrative,
+                        sentiment_pre, sentiment_post,
                         account_type
                     )
                     VALUES (
@@ -304,6 +309,7 @@ class DBManager {
                         @psychology, @mistakes, @comment_bias, @comment_execution, 
                         @comment_problems, @comment_fazit, @image_paths, 
                         @images_execution, @images_condition, @images_narrative,
+                        @sentiment_pre, @sentiment_post,
                         @account_type
                     )
                 `);
@@ -332,6 +338,8 @@ class DBManager {
                     images_execution: trade.images_execution ?? null,
                     images_condition: trade.images_condition ?? null,
                     images_narrative: trade.images_narrative ?? null,
+                    sentiment_pre: trade.sentiment_pre ?? null,
+                    sentiment_post: trade.sentiment_post ?? null,
                     account_type: snapshotType
                 };
 
@@ -382,7 +390,9 @@ class DBManager {
                         image_paths = @image_paths,
                         images_execution = @images_execution,
                         images_condition = @images_condition,
-                        images_narrative = @images_narrative
+                        images_narrative = @images_narrative,
+                        sentiment_pre = @sentiment_pre,
+                        sentiment_post = @sentiment_post
                     WHERE id = @id
                 `);
                 stmt.run(trade);

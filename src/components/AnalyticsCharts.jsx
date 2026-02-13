@@ -1,13 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useData } from '../context/TradeContext';
 import { SkeletonChart } from './SkeletonLoader';
 
 export default function AnalyticsCharts() {
-    const { filteredTrades: trades, isLoading } = useData();
+    const { filteredTrades: trades, isLoading, formatCurrency, formatPnL } = useData();
+    const [hoveredPoint, setHoveredPoint] = useState(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+    const svgRef = useRef(null);
 
     const pnlData = useMemo(() => {
         if (!trades.length) return [];
-        // Sort trades by date + created_at
         const sorted = [...trades].sort((a, b) => {
             const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
             if (dateDiff !== 0) return dateDiff;
@@ -21,16 +23,12 @@ export default function AnalyticsCharts() {
                 id: t.id,
                 equity: cumulative,
                 pnl: t.pnl,
-                date: t.date
+                date: t.date,
+                symbol: t.symbol,
+                model: t.model
             };
         });
     }, [trades]);
-
-    const maxPnl = Math.max(...pnlData.map(d => Math.abs(d.equity)), 1000);
-    const getBarHeight = (equity) => {
-        const height = (Math.abs(equity) / maxPnl) * 100;
-        return `${Math.max(height, 5)}%`;
-    };
 
     const topStrategies = useMemo(() => {
         if (!trades.length) return [];
@@ -48,15 +46,74 @@ export default function AnalyticsCharts() {
         return Object.entries(strategyStats)
             .map(([name, stats]) => ({
                 name,
-                winRate: Math.round((stats.wins / stats.total) * 100)
+                winRate: Math.round((stats.wins / stats.total) * 100),
+                total: stats.total
             }))
-            .sort((a, b) => b.winRate - a.winRate)
+            .sort((a, b) => b.winRate - a.winRate || b.total - a.total)
             .slice(0, 3);
     }, [trades]);
 
+    // Graph calculation helpers with smoothing
+    const chartSettings = useMemo(() => {
+        if (pnlData.length < 2) return null;
+
+        const padding = 20;
+        const width = 1000;
+        const height = 400;
+
+        const points = pnlData.slice(-20); // Last 20 trades
+        const values = points.map(d => d.equity);
+        const minVal = Math.min(0, ...values);
+        const maxVal = Math.max(0, ...values);
+        const range = maxVal - minVal || 1;
+
+        const getX = (i) => (i / (points.length - 1)) * width;
+        const getY = (val) => height - ((val - minVal) / range) * (height - padding * 2) - padding;
+
+        // Cubic Bézier smoothing
+        let pathD = `M ${getX(0)} ${getY(points[0].equity)}`;
+        for (let i = 0; i < points.length - 1; i++) {
+            const x1 = getX(i);
+            const y1 = getY(points[i].equity);
+            const x2 = getX(i + 1);
+            const y2 = getY(points[i + 1].equity);
+            const cpX = (x1 + x2) / 2;
+            pathD += ` C ${cpX} ${y1} ${cpX} ${y2} ${x2} ${y2}`;
+        }
+
+        const areaD = `${pathD} L ${getX(points.length - 1)} ${height} L ${getX(0)} ${height} Z`;
+
+        return { pathD, areaD, width, height, points, minY: getY(minVal), zeroY: getY(0), getX, getY };
+    }, [pnlData]);
+
+    const handleMouseMove = (e) => {
+        if (!chartSettings || !svgRef.current) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const xRel = e.clientX - rect.left;
+        const yRel = e.clientY - rect.top;
+
+        const svg = svgRef.current;
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+        const x = svgP.x;
+        const width = chartSettings.width;
+
+        // Find closest point by x coordinate
+        const index = Math.round((x / width) * (chartSettings.points.length - 1));
+        const clampedIndex = Math.max(0, Math.min(index, chartSettings.points.length - 1));
+        const point = chartSettings.points[clampedIndex];
+
+        setHoveredPoint({ ...point, index: clampedIndex });
+        setTooltipPos({ x: xRel, y: yRel });
+    };
+
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-8">
                 <SkeletonChart />
                 <div className="bg-white dark:bg-surface-dark p-10 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-8">
                     <div className="h-4 w-32 bg-slate-100 dark:bg-white/5 rounded animate-pulse" />
@@ -75,62 +132,189 @@ export default function AnalyticsCharts() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pb-12">
-            <div className="bg-white dark:bg-surface-dark p-10 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-                <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Equity Curve</h3>
-                    <div className="flex gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary/30"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-8">
+            {/* Equity Curve Optimization */}
+            <div className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl flex flex-col relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                    <div>
+                        <span className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-[0.2em] block mb-1">Performance Hub</span>
+                        <h3 className="text-sm font-black dark:text-white uppercase tracking-wider italic">Equity Curve</h3>
                     </div>
                 </div>
-                <div className="relative h-48 w-full flex items-end justify-between px-2 gap-1 overflow-hidden group">
-                    {pnlData.length > 0 ? (
-                        pnlData.slice(-15).map((d, i) => (
-                            <div
-                                key={d.id}
-                                className={`flex-1 rounded-t-lg transition-all duration-500 hover:brightness-125 relative group/bar`}
-                                style={{
-                                    height: getBarHeight(d.equity),
-                                    backgroundColor: d.equity >= 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(244, 63, 94, 0.6)'
-                                }}
+
+                <div className="relative w-full aspect-[2.5/1] group/chart cursor-crosshair">
+                    {chartSettings ? (
+                        <>
+                            <svg
+                                ref={svgRef}
+                                viewBox={`0 0 ${chartSettings.width} ${chartSettings.height}`}
+                                className="w-full h-full overflow-visible drop-shadow-[0_0_15px_rgba(124,93,250,0.15)]"
+                                onMouseMove={handleMouseMove}
+                                onMouseLeave={() => setHoveredPoint(null)}
                             >
-                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 whitespace-nowrap z-10 pointer-events-none transition-all">
-                                    ${d.equity.toLocaleString()}
+                                <defs>
+                                    <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#7c5dfa" stopOpacity="0.4" />
+                                        <stop offset="100%" stopColor="#7c5dfa" stopOpacity="0" />
+                                    </linearGradient>
+                                </defs>
+
+                                {/* Zero Axis */}
+                                <line
+                                    x1="0" y1={chartSettings.zeroY}
+                                    x2={chartSettings.width} y2={chartSettings.zeroY}
+                                    stroke="currentColor"
+                                    className="text-slate-200 dark:text-white/10"
+                                    strokeWidth="1"
+                                    strokeDasharray="4 4"
+                                />
+
+                                {/* Area Fill */}
+                                <path
+                                    d={chartSettings.areaD}
+                                    fill="url(#equityGradient)"
+                                    className="transition-all duration-1000"
+                                />
+
+                                {/* Main Line */}
+                                <path
+                                    d={chartSettings.pathD}
+                                    fill="none"
+                                    stroke="#7c5dfa"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-all duration-1000"
+                                />
+
+                                {/* Hover Effects */}
+                                {hoveredPoint && (
+                                    <>
+                                        <line
+                                            x1={chartSettings.getX(hoveredPoint.index)}
+                                            y1="0"
+                                            x2={chartSettings.getX(hoveredPoint.index)}
+                                            y2={chartSettings.height}
+                                            stroke="currentColor"
+                                            className="text-primary/30"
+                                            strokeWidth="1"
+                                            strokeDasharray="2 2"
+                                        />
+                                        <circle
+                                            cx={chartSettings.getX(hoveredPoint.index)}
+                                            cy={chartSettings.getY(hoveredPoint.equity)}
+                                            r="5"
+                                            fill="#7c5dfa"
+                                            className="animate-pulse shadow-lg"
+                                        />
+                                        <circle
+                                            cx={chartSettings.getX(hoveredPoint.index)}
+                                            cy={chartSettings.getY(hoveredPoint.equity)}
+                                            r="8"
+                                            fill="none"
+                                            stroke="#7c5dfa"
+                                            strokeWidth="1"
+                                            strokeOpacity="0.5"
+                                        />
+                                    </>
+                                )}
+                            </svg>
+
+                            {/* Tooltip Overlay */}
+                            {hoveredPoint && (
+                                <div
+                                    className="absolute z-50 pointer-events-none transition-transform duration-75"
+                                    style={{
+                                        left: tooltipPos.x,
+                                        top: tooltipPos.y - 10,
+                                        transform: 'translate(-50%, -100%)',
+                                        willChange: 'transform'
+                                    }}
+                                >
+                                    <div className="bg-white/80 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl min-w-[140px] overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                                        <div className="text-[9px] font-black text-slate-400 dark:text-white/30 uppercase tracking-[0.2em] mb-2">{new Date(hoveredPoint.date).toLocaleDateString()}</div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center gap-4">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Trade PnL</span>
+                                                <span className={`text-xs font-black ${hoveredPoint.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                    {formatPnL(hoveredPoint.pnl)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center gap-4">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Equity</span>
+                                                <span className="text-xs font-black dark:text-white">
+                                                    {formatCurrency(hoveredPoint.equity)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {hoveredPoint.symbol && (
+                                            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                                <span className="text-[9px] font-black text-primary uppercase tracking-widest">{hoveredPoint.symbol}</span>
+                                                <span className="text-[8px] font-bold text-slate-400">{hoveredPoint.model}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            )}
+                        </>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-xs font-medium italic">
-                            No trade data available for this phase
+                            Awaiting trade data for visualization
                         </div>
                     )}
                 </div>
-                <div className="mt-6 flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest border-t border-slate-100 dark:border-slate-800 pt-4">
-                    <span>Start of Period</span>
-                    <span>Current Performance</span>
+
+                <div className="mt-8 flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] border-t border-slate-100 dark:border-white/5 pt-5">
+                    <span>Baseline Genesis</span>
+                    <span className="text-primary">Current Trajectory</span>
                 </div>
             </div>
-            <div className="bg-white dark:bg-surface-dark p-10 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-8">Top Strategies</h3>
-                <div className="space-y-8">
+
+            {/* Top Strategies Optimization */}
+            <div className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full translate-y-1/2 -translate-x-1/2" />
+
+                <div className="flex items-center justify-between mb-3">
+                    <div>
+                        <span className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-[0.2em] block mb-1">Alpha Patterns</span>
+                        <h3 className="text-sm font-black dark:text-white uppercase tracking-wider italic">Top Strategies</h3>
+                    </div>
+                </div>
+
+                <div className="space-y-6 relative z-10">
                     {topStrategies.length > 0 ? (
                         topStrategies.map((strategy) => (
-                            <div key={strategy.name}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-bold dark:text-white">{strategy.name}</span>
-                                    <span className="text-sm font-black text-emerald-500">{strategy.winRate}%</span>
+                            <div key={strategy.name} className="group/strategy">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-primary text-lg">psychology</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-black dark:text-white block leading-none mb-1">{strategy.name}</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{strategy.total} Trades Logged</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-lg font-black text-emerald-500 tracking-tighter leading-none block">{strategy.winRate}%</span>
+                                        <span className="text-[8px] font-black text-slate-500 uppercase">Success Rate</span>
+                                    </div>
                                 </div>
-                                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full">
+                                <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full p-0.5 border border-slate-200 dark:border-white/10">
                                     <div
-                                        className="h-full bg-primary rounded-full transition-all duration-500"
+                                        className="h-full bg-gradient-to-r from-primary via-primary to-emerald-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(124,93,250,0.3)]"
                                         style={{ width: `${strategy.winRate}%` }}
                                     ></div>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="text-slate-400 text-sm">No strategies recorded yet.</div>
+                        <div className="text-slate-400 text-xs font-medium italic h-48 flex items-center justify-center border border-dashed border-slate-200 dark:border-white/10 rounded-2xl">
+                            Insufficient behavioral data for strategy mapping
+                        </div>
                     )}
                 </div>
             </div>

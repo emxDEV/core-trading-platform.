@@ -3,7 +3,7 @@ import { useData } from '../context/TradeContext';
 import { soundEngine } from '../utils/SoundEngine';
 
 export default function Sidebar() {
-    const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats, setIsDailyJournalOpen } = useData();
+    const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats, setIsDailyJournalOpen, t, friendRequests } = useData();
 
     return (
         <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-64'} flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden`}>
@@ -26,7 +26,7 @@ export default function Sidebar() {
             <nav className="flex-1 px-4 py-4 space-y-2">
                 <NavItem
                     icon="space_dashboard"
-                    label="Journal"
+                    label={t('journal')}
                     active={currentView === 'journal'}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -36,7 +36,7 @@ export default function Sidebar() {
                 />
                 <NavItem
                     icon="auto_awesome_motion"
-                    label="Copy Trading"
+                    label={t('copy_trading')}
                     active={currentView === 'copy'}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -47,7 +47,7 @@ export default function Sidebar() {
 
                 <NavItem
                     icon="analytics"
-                    label="Analytics"
+                    label={t('analytics')}
                     active={currentView === 'analytics'}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -57,7 +57,7 @@ export default function Sidebar() {
                 />
                 <NavItem
                     icon="date_range"
-                    label="Calendar"
+                    label={t('calendar')}
                     active={currentView === 'calendar'}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -70,7 +70,7 @@ export default function Sidebar() {
             <div className="px-4 py-4 border-t border-slate-100 dark:border-slate-800/60 space-y-2 mb-2">
                 <NavItem
                     icon="auto_stories"
-                    label="Daily Journal"
+                    label={t('daily_journal')}
                     active={false}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -80,7 +80,7 @@ export default function Sidebar() {
                 />
                 <NavItem
                     icon="settings"
-                    label="Settings"
+                    label={t('settings')}
                     active={currentView === 'settings'}
                     isCollapsed={isSidebarCollapsed}
                     onClick={() => {
@@ -98,11 +98,18 @@ export default function Sidebar() {
                 }}
             >
                 <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-3'}`}>
-                    <img
-                        alt="User profile avatar"
-                        className="w-10 h-10 rounded-2xl border-2 border-primary/20 object-cover shadow-lg"
-                        src={userProfile.avatar}
-                    />
+                    <div className="relative">
+                        <img
+                            alt="User profile avatar"
+                            className="w-10 h-10 rounded-2xl border-2 border-primary/20 object-cover shadow-lg"
+                            src={userProfile.avatar}
+                        />
+                        {friendRequests?.length > 0 && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-lg border-2 border-white dark:border-surface-dark flex items-center justify-center animate-pulse">
+                                <span className="text-[9px] font-black text-white leading-none">{friendRequests.length}</span>
+                            </div>
+                        )}
+                    </div>
                     {!isSidebarCollapsed && (
                         <div className="flex flex-col truncate animate-in fade-in slide-in-from-left-2 duration-500">
                             <span className="text-xs font-black dark:text-white truncate uppercase tracking-tight">{userProfile.name}</span>
@@ -110,6 +117,12 @@ export default function Sidebar() {
                         </div>
                     )}
                 </div>
+
+                {!isSidebarCollapsed && (
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 hover:opacity-100 transition-opacity">
+                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">v1.0.8</span>
+                    </div>
+                )}
             </div>
         </aside>
     );

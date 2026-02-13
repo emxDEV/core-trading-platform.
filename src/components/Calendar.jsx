@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import ViewHeader from './ViewHeader';
 import { useData } from '../context/TradeContext';
 import CalendarHeatmap from './CalendarHeatmap';
 
@@ -21,7 +22,18 @@ const COLOR_MAP = {
 };
 
 export default function Calendar() {
-    const { filteredTrades, accounts, getPillColor, openModal, dailyJournals, saveDailyJournal, setIsDailyJournalOpen } = useData();
+    const {
+        filteredTrades,
+        accounts,
+        getPillColor,
+        openModal,
+        dailyJournals,
+        saveDailyJournal,
+        setIsDailyJournalOpen,
+        formatCurrency,
+        t,
+        appSettings
+    } = useData();
 
     const [selectedDate, setSelectedDate] = useState(null);
 
@@ -60,51 +72,37 @@ export default function Calendar() {
         return null;
     }, [selectedDate, dailyJournals]);
 
-    const formatCurrency = (val) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(val);
-    };
-
     return (
         <div className="flex flex-col h-full space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">Trade Calendar</span>
-                        <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                            Live
-                        </span>
-                    </h1>
-                    <p className="text-slate-400 mt-1 font-medium">Visualize your performance on a timeline</p>
-                </div>
-
-                <div className="flex gap-4">
-                    <div className="bg-[#0f111a] border border-white/5 p-4 rounded-2xl flex gap-6">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Monthly P&L</p>
-                            <p className={`text-xl font-black ${dailyData.reduce((acc, curr) => acc + curr.pnl, 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {formatCurrency(dailyData.reduce((acc, curr) => acc + curr.pnl, 0))}
-                            </p>
-                        </div>
-                        <div className="w-px bg-white/5" />
-                        <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Win Rate</p>
-                            <p className="text-xl font-black text-white">
-                                {dailyData.length > 0 ? ((dailyData.filter(d => d.pnl > 0).length / dailyData.length) * 100).toFixed(1) : 0}%
-                            </p>
-                        </div>
-                        <div className="w-px bg-white/5" />
-                        <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Winning Days</p>
-                            <p className="text-xl font-black text-white">
-                                {dailyData.filter(d => d.pnl > 0).length} / {dailyData.length}
-                            </p>
-                        </div>
+            <ViewHeader
+                title="Trade"
+                accent="Calendar"
+                subtitle={t('visualize_performance')}
+                icon="calendar_month"
+            >
+                <div className="bg-[#0f111a] border border-white/5 p-4 rounded-2xl flex gap-6">
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('monthly_pnl')}</p>
+                        <p className={`text-xl font-black ${dailyData.reduce((acc, curr) => acc + curr.pnl, 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {appSettings.maskBalances ? '****' : formatCurrency(dailyData.reduce((acc, curr) => acc + curr.pnl, 0))}
+                        </p>
+                    </div>
+                    <div className="w-px bg-white/5" />
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('win_rate')}</p>
+                        <p className="text-xl font-black text-white">
+                            {dailyData.length > 0 ? ((dailyData.filter(d => d.pnl > 0).length / dailyData.length) * 100).toFixed(1) : 0}%
+                        </p>
+                    </div>
+                    <div className="w-px bg-white/5" />
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('winning_days')}</p>
+                        <p className="text-xl font-black text-white">
+                            {dailyData.filter(d => d.pnl > 0).length} / {dailyData.length}
+                        </p>
                     </div>
                 </div>
-            </div>
+            </ViewHeader>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
                 {/* Left: Huge Calendar */}

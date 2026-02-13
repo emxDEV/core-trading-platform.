@@ -4,6 +4,7 @@ import Analytics from './components/Analytics';
 import CopyCockpit from './components/CopyCockpit';
 import NewTradeModal from './components/NewTradeModal';
 import DailyPnLModal from './components/DailyPnLModal';
+import CommandCenter from './components/CommandCenter';
 import ImportModal from './components/ImportModal';
 import { TradeProvider, useData } from './context/TradeContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -141,7 +142,7 @@ function AuthGate() {
 }
 
 function ShortcutManager() {
-  const { setCurrentView, openModal, closeModal, isModalOpen, setIsDailyPnLOpen, appSettings } = useData();
+  const { setCurrentView, openModal, closeModal, isModalOpen, setIsDailyPnLOpen, setIsCommandCenterOpen, appSettings } = useData();
 
   useShortcuts({
     onNewTrade: () => {
@@ -156,9 +157,11 @@ function ShortcutManager() {
     onEscape: () => {
       closeModal();
       setIsDailyPnLOpen(false);
+      setIsDailyJournalOpen(false);
+      setIsCommandCenterOpen(false);
     },
     onCommandCenter: () => {
-      console.log('Command Center activation...');
+      setIsCommandCenterOpen(true);
     }
   }, appSettings.enableShortcuts);
 
@@ -195,6 +198,7 @@ function GlobalModal() {
     <>
       <NewTradeModal isOpen={isModalOpen} onClose={closeModal} tradeToEdit={tradeToEdit} />
       <DailyPnLModal isOpen={isDailyPnLOpen} onClose={() => setIsDailyPnLOpen(false)} />
+      <CommandCenter />
       <DailyJournal />
       <ImportModal />
     </>

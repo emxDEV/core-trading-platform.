@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/TradeContext';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -38,6 +38,23 @@ export default function DailyJournal() {
     ];
 
     const [newGoalText, setNewGoalText] = useState('');
+    const [isVisible, setIsVisible] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    useEffect(() => {
+        if (isDailyJournalOpen) {
+            setIsVisible(true);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setIsAnimating(true);
+                });
+            });
+        } else {
+            setIsAnimating(false);
+            const timer = setTimeout(() => setIsVisible(false), 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isDailyJournalOpen]);
 
     useEffect(() => {
         const journal = dailyJournals.find(j => j.date === activeDate);
@@ -95,8 +112,6 @@ export default function DailyJournal() {
             g.id === id ? { ...g, text } : g
         );
         setCurrentJournal({ ...currentJournal, goals: updatedGoals });
-        // Debounce actual save to avoid excessive DB writes during typing? 
-        // For now direct is okay for small text
         saveDailyJournal({ ...currentJournal, goals: updatedGoals });
     };
 
@@ -113,132 +128,185 @@ export default function DailyJournal() {
         setIsDailyJournalOpen(false);
     };
 
-    if (!isDailyJournalOpen) return null;
+    if (!isVisible) return null;
+
+    const formattedDate = (() => {
+        const [y, m, d] = activeDate.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    })();
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="w-full max-w-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+        <div className={`fixed inset-0 z-[10000] flex items-center justify-center p-6 sm:p-12 lg:p-24 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isAnimating ? 'bg-[#020617]/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`} onClick={() => setIsDailyJournalOpen(false)}>
+            <div className={`bg-[#0F172A]/90 backdrop-blur-3xl border border-white/10 rounded-[3rem] w-full max-w-3xl h-full max-h-[900px] flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`} onClick={e => e.stopPropagation()}>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-emerald-500 to-transparent opacity-20" />
+                <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[120px] rounded-full animate-pulse pointer-events-none" />
+                <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-emerald-500/10 blur-[120px] rounded-full animate-pulse pointer-events-none" />
 
                 {/* Header */}
-                <div className="p-8 pb-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                <div className="p-12 pb-8 flex items-start justify-between relative z-10">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Daily Protocol</span>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-primary/40 blur-md rounded-full animate-ping" />
+                                <span className="relative w-2.5 h-2.5 rounded-full bg-primary block shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
+                            </div>
+                            <span className="text-[11px] font-black text-primary uppercase tracking-[0.5em] leading-none">Journal Protocol</span>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic">
-                            {(() => {
-                                const [y, m, d] = activeDate.split('-').map(Number);
-                                return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-                            })()}
+                        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic drop-shadow-2xl">
+                            {formattedDate}
                         </h2>
                     </div>
                     <button
                         onClick={() => setIsDailyJournalOpen(false)}
-                        className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
+                        className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/20 transition-all border border-white/5 hover:border-rose-500/30 group active:scale-90"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <span className="material-symbols-outlined text-3xl group-hover:rotate-180 transition-transform duration-500">close</span>
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 pt-6 custom-scrollbar space-y-8">
+                {/* Main Content Area */}
+                <div className="flex-1 overflow-y-auto p-12 pt-4 custom-scrollbar space-y-16 relative z-10">
 
-                    {/* Goals Checklist */}
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between px-1">
-                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Operational Objectives</h3>
-                            <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest">
-                                {currentJournal.goals.length} / 10
-                            </span>
+                    {/* Objectives Section */}
+                    <div className="space-y-10">
+                        <div className="flex items-end justify-between px-2">
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Operational Checklist</h3>
+                                <p className="text-xs font-bold text-slate-400 italic tracking-tight">Maintain discipline through high-fidelity execution.</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-3xl font-black text-emerald-400 italic tracking-tighter leading-none block drop-shadow-glow">
+                                    {Math.round((currentJournal.goals.filter(g => g.completed).length / (currentJournal.goals.length || 1)) * 100)}%
+                                </span>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mt-2">Mission Integrity</span>
+                            </div>
                         </div>
 
-                        {/* Add New Goal */}
+                        {/* Professional Goal Input */}
                         {currentJournal.goals.length < 10 && (
-                            <div className="flex gap-3 p-1">
+                            <div className="relative group/input">
+                                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-500 group-focus-within/input:text-primary transition-colors">add_task</span>
+                                </div>
                                 <input
                                     type="text"
-                                    placeholder="Enter new objective..."
-                                    className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                                    placeholder="Define new operational objective..."
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl pl-16 pr-32 py-6 text-sm font-black text-white outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all placeholder:text-slate-600 italic tracking-tight"
                                     value={newGoalText}
                                     onChange={(e) => setNewGoalText(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddGoal()}
                                 />
                                 <button
                                     onClick={handleAddGoal}
-                                    className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center hover:bg-primary-light transition-all shadow-lg active:scale-95"
+                                    className="absolute right-4 top-4 bottom-4 px-6 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary-light transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-2"
                                 >
-                                    <span className="material-symbols-outlined">add</span>
+                                    Deploy <span className="material-symbols-outlined text-base">rocket_launch</span>
                                 </button>
                             </div>
                         )}
 
-                        <div className="grid gap-3">
+                        <div className="grid gap-5">
                             {currentJournal.goals.map((goal) => (
                                 <div
                                     key={goal.id}
-                                    className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 ${goal.completed
-                                        ? 'bg-emerald-500/[0.03] border-emerald-500/10'
-                                        : 'bg-slate-50 dark:bg-slate-800/10 border-slate-100 dark:border-slate-800/50 hover:border-primary/20'
+                                    className={`group flex items-center gap-6 p-6 rounded-2xl border transition-all duration-700 relative overflow-hidden ${goal.completed
+                                        ? 'bg-emerald-500/[0.03] border-emerald-500/20'
+                                        : 'bg-white/[0.02] border-white/5 hover:border-primary/30 hover:bg-white/[0.04]'
                                         }`}
                                 >
+                                    {/* Completion Marker */}
                                     <button
                                         onClick={() => handleGoalToggle(goal.id)}
-                                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${goal.completed
-                                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                            : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-700 relative z-10 ${goal.completed
+                                            ? 'bg-emerald-500 text-white shadow-[0_0_25px_rgba(16,185,129,0.4)]'
+                                            : 'bg-white/5 text-slate-500 border border-white/5 hover:border-primary/30'
                                             }`}
                                     >
-                                        {goal.completed && <span className="material-symbols-outlined text-[18px]">check</span>}
+                                        <span className={`material-symbols-outlined text-2xl transition-all duration-700 ${goal.completed ? 'scale-110 drop-shadow-glow' : 'scale-90 opacity-30 group-hover:opacity-60'}`}>
+                                            {goal.completed ? 'check_circle' : 'circle'}
+                                        </span>
                                     </button>
 
-                                    <input
-                                        type="text"
-                                        className={`text-sm font-bold tracking-tight flex-1 bg-transparent border-none outline-none ${goal.completed ? 'text-emerald-500/50 line-through' : 'text-slate-700 dark:text-slate-200'
-                                            }`}
-                                        value={goal.text}
-                                        onChange={(e) => handleUpdateGoalText(goal.id, e.target.value)}
-                                    />
+                                    {/* Text Content */}
+                                    <div className="flex-1 min-w-0 relative z-10">
+                                        <input
+                                            type="text"
+                                            className={`w-full text-sm font-black tracking-tight bg-transparent border-none outline-none transition-all duration-700 ${goal.completed
+                                                ? 'text-emerald-500/50 line-through italic'
+                                                : 'text-slate-200'
+                                                }`}
+                                            value={goal.text}
+                                            onChange={(e) => handleUpdateGoalText(goal.id, e.target.value)}
+                                        />
+                                    </div>
 
+                                    {/* Action - Delete */}
                                     <button
                                         onClick={() => handleDeleteGoal(goal.id)}
-                                        className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all flex items-center justify-center"
+                                        className="opacity-0 group-hover:opacity-100 w-12 h-12 rounded-xl text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 transition-all flex items-center justify-center relative z-10"
                                     >
-                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                        <span className="material-symbols-outlined text-2xl">delete_sweep</span>
                                     </button>
+
+                                    {/* Background Decor */}
+                                    {goal.completed && (
+                                        <div className="absolute right-0 top-0 bottom-0 w-48 bg-gradient-to-l from-emerald-500/5 to-transparent pointer-events-none" />
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Reflection Area */}
-                    <div>
-                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 px-1">End-of-day Reflection</h3>
-                        <textarea
-                            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 text-sm font-medium leading-relaxed italic text-slate-700 dark:text-slate-300 outline-none focus:ring-4 focus:ring-primary/10 transition-all min-h-[160px]"
-                            placeholder="How did the market behave today? What were your emotional triggers? What will you do better tomorrow?"
-                            value={currentJournal.reflection}
-                            onChange={(e) => setCurrentJournal({ ...currentJournal, reflection: e.target.value })}
-                        />
+                    {/* Mission Log / Reflection Section */}
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between px-2">
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Post-Mortem Analysis</h3>
+                                <p className="text-xs font-bold text-slate-400 italic tracking-tight">Synthesize market behavior and tactical responses.</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center border border-primary/10">
+                                <span className="material-symbols-outlined text-primary text-2xl animate-pulse">history_edu</span>
+                            </div>
+                        </div>
+                        <div className="relative group/reflection">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 via-emerald-500/5 to-primary/10 rounded-[2.5rem] blur opacity-0 group-focus-within/reflection:opacity-100 transition duration-1000" />
+                            <textarea
+                                className="relative w-full bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-10 text-sm font-black leading-relaxed text-slate-200 outline-none focus:border-primary/30 transition-all min-h-[250px] custom-scrollbar italic placeholder:text-slate-700 shadow-inner"
+                                placeholder="Describe the market environment, execution quality, and psychological state today..."
+                                value={currentJournal.reflection}
+                                onChange={(e) => setCurrentJournal({ ...currentJournal, reflection: e.target.value })}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="p-8 pt-0 flex gap-4">
+                {/* Tactical Footer Actions */}
+                <div className="p-12 pt-6 flex gap-8 relative z-10 bg-gradient-to-t from-[#0F172A] via-[#0F172A] to-transparent">
                     <button
                         onClick={() => setIsDailyJournalOpen(false)}
-                        className="flex-1 py-5 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[9px] uppercase tracking-widest"
+                        className="flex-1 py-6 bg-white/5 text-slate-500 font-black rounded-2xl hover:bg-white/10 hover:text-white transition-all text-[11px] uppercase tracking-[0.3em] border border-white/5 active:scale-95"
                     >
-                        Save & Close
+                        Suspend Session
                     </button>
                     <button
                         onClick={handleComplete}
-                        className={`flex-[2] py-5 font-black rounded-2xl transition-all text-[9px] uppercase tracking-[0.2em] shadow-xl ${currentJournal.is_completed
-                            ? 'bg-emerald-500 text-white cursor-default'
-                            : 'bg-primary text-white hover:bg-primary-light shadow-primary/20 hover:scale-[1.02] active:scale-95'
+                        className={`flex-[2.5] py-6 font-black rounded-2xl transition-all text-[11px] uppercase tracking-[0.4em] shadow-2xl relative overflow-hidden group/submit ${currentJournal.is_completed
+                            ? 'bg-emerald-500 text-white cursor-default shadow-emerald-500/30'
+                            : 'bg-primary text-white hover:bg-primary-light shadow-primary/40 hover:scale-[1.02] active:scale-[0.98]'
                             }`}
                     >
-                        {currentJournal.is_completed ? 'Mission Accomplished' : 'Complete Operation'}
+                        <div className="relative z-10 flex items-center justify-center gap-4">
+                            {currentJournal.is_completed ? (
+                                <>Mission Finalized <span className="material-symbols-outlined text-xl">inventory</span></>
+                            ) : (
+                                <>Archive Protocol <span className="material-symbols-outlined text-xl group-hover:translate-x-2 transition-transform duration-500">send</span></>
+                            )}
+                        </div>
+                        {!currentJournal.is_completed && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                        )}
                     </button>
                 </div>
             </div>

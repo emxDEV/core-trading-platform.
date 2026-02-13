@@ -46,7 +46,7 @@ const FilterDropdown = ({ label, options, active, onChange, icon }) => {
 };
 
 export default function Header() {
-    const { openModal, currentView, setIsCopyGroupModalOpen, setIsDailyPnLOpen, dateFilter, analyticsFilters, setAnalyticsFilters, accounts } = useData();
+    const { openModal, currentView, setIsCopyGroupModalOpen, setIsDailyPnLOpen, dateFilter, analyticsFilters, setAnalyticsFilters, accounts, t } = useData();
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const getLabel = () => {
@@ -63,12 +63,12 @@ export default function Header() {
     return (
         <header className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 bg-white dark:bg-background-dark/50 backdrop-blur-sm sticky top-0 z-10">
             <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">
-                {currentView === 'journal' ? 'Journal Overview' :
-                    currentView === 'copy' ? 'Copy Cockpit' :
-                        currentView === 'analytics' ? 'Analytics' :
-                            currentView === 'calendar' ? 'Trade Calendar' :
-                                currentView === 'settings' ? 'Settings' :
-                                    'Global Profile'}
+                {currentView === 'journal' ? t('journal_overview') :
+                    currentView === 'copy' ? t('copy_cockpit') :
+                        currentView === 'analytics' ? t('analytics') :
+                            currentView === 'calendar' ? t('calendar') :
+                                currentView === 'settings' ? t('settings') :
+                                    t('global_profile')}
             </h1>
             <div className="flex items-center gap-4">
                 {currentView === 'analytics' && (
@@ -116,30 +116,12 @@ export default function Header() {
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/5"
                 >
                     <span className="material-symbols-outlined text-[18px]">query_stats</span>
-                    Daily PNL
+                    {t('daily_pnl')}
                 </button>
                 <button className="p-2 text-slate-400 hover:text-primary transition-colors">
                     <span className="material-symbols-outlined">notifications</span>
                 </button>
 
-                {currentView === 'journal' && (
-                    <button
-                        onClick={() => openModal()}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-opacity-90 hover:shadow-lg hover:shadow-primary/20 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-sm">add</span>
-                        New Trade
-                    </button>
-                )}
-                {currentView === 'copy' && (
-                    <button
-                        onClick={() => setIsCopyGroupModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-opacity-90 hover:shadow-lg hover:shadow-primary/20 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-sm">add_circle</span>
-                        New Group
-                    </button>
-                )}
             </div>
         </header>
     );

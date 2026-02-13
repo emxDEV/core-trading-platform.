@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/TradeContext';
+import { toPng } from 'html-to-image';
+import PnLCard from './PnLCard';
 
 export default function DailyPnLModal({ isOpen, onClose }) {
-    const { accounts, trades, getAccountStats, appSettings } = useData();
+    const { accounts, trades, getAccountStats, appSettings, formatCurrency, formatPnL, userProfile, stats } = useData();
     const [isAnimating, setIsAnimating] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const cardRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -27,7 +31,7 @@ export default function DailyPnLModal({ isOpen, onClose }) {
     const todayStr = new Date().toISOString().split('T')[0];
 
     const accountData = accounts.map(acc => {
-        const stats = getAccountStats(acc.id, accounts, trades);
+        const accStats = getAccountStats(acc.id, accounts, trades);
         const dailyTrades = trades.filter(t =>
             String(t.account_id) === String(acc.id) &&
             t.date === todayStr
@@ -36,9 +40,9 @@ export default function DailyPnLModal({ isOpen, onClose }) {
 
         return {
             ...acc,
-            balance: stats.balance,
+            balance: accStats.balance,
             dailyPnL,
-            overallPnL: stats.totalPnL,
+            overallPnL: accStats.totalPnL,
             tradeCount: dailyTrades.length,
             winCount: dailyTrades.filter(t => t.pnl > 0).length
         };
@@ -47,20 +51,44 @@ export default function DailyPnLModal({ isOpen, onClose }) {
     const totalDailyPnL = accountData.reduce((sum, acc) => sum + acc.dailyPnL, 0);
     const totalTradesToday = accountData.reduce((sum, acc) => sum + acc.tradeCount, 0);
 
-    const formatCurrency = (val) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(val);
+    const handleShare = async () => {
+        if (!cardRef.current) return;
+        setIsSharing(true);
+        try {
+            // Give a tiny moment for any fonts/images to be rock solid
+            await new Promise(r => setTimeout(r, 200));
+
+            const dataUrl = await toPng(cardRef.current, {
+                quality: 1,
+                pixelRatio: 2,
+                width: 1200,
+                height: 675,
+                cacheBust: true,
+                skipFontFace: true, // Prevent security errors with Google Fonts in electron
+            });
+
+            const link = document.createElement('a');
+            link.download = `CORE-PnL-${todayStr}.png`;
+            link.href = dataUrl;
+            link.click();
+
+            // Play success sound if available
+            if (window.soundEngine) window.soundEngine.playSuccess();
+        } catch (error) {
+            console.error('Failed to generate sharing card:', error);
+        } finally {
+            setIsSharing(false);
+        }
     };
+
 
     return createPortal(
         <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center transition-all duration-700 ease-in-out ${isAnimating ? 'bg-slate-950/80 backdrop-blur-lg opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isAnimating ? 'bg-[#020617]/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
             onClick={onClose}
         >
             <div
-                className={`w-full max-w-2xl bg-[#0B0E14]/90 backdrop-blur-xl border border-white/5 rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-12 opacity-0'}`}
+                className={`w-full max-w-2xl bg-[#0F172A]/90 backdrop-blur-3xl border border-white/5 rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Immersive Header */}
@@ -92,25 +120,26 @@ export default function DailyPnLModal({ isOpen, onClose }) {
                     {accountData.map((acc, idx) => (
                         <div
                             key={acc.id}
-                            className={`group relative transition-all duration-700 delay-[${idx * 100}ms] ${isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}
+                            className={`group relative transition-all duration-700 ${isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}
+                            style={{ transitionDelay: `${idx * 100}ms` }}
                         >
-                            <div className="relative overflow-hidden bg-[#161920] border border-white/5 rounded-[2.25rem] p-6 hover:border-white/10 transition-all">
+                            <div className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-[2.25rem] p-6 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500 group/item">
                                 {/* Subtle Background Gradient for profit/loss */}
-                                <div className={`absolute inset-0 opacity-[0.03] transition-opacity group-hover:opacity-[0.07] ${acc.dailyPnL >= 0 ? 'bg-gradient-to-br from-emerald-500 to-transparent' : 'bg-gradient-to-br from-rose-500 to-transparent'}`} />
+                                <div className={`absolute inset-0 opacity-0 group-hover/item:opacity-[0.05] transition-opacity duration-1000 ${acc.dailyPnL >= 0 ? 'bg-gradient-to-br from-emerald-500 to-transparent' : 'bg-gradient-to-br from-rose-500 to-transparent'}`} />
 
                                 <div className="relative flex items-center justify-between">
                                     <div className="flex items-center gap-5">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-colors ${acc.dailyPnL >= 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
-                                            <span className={`material-symbols-outlined text-[28px] ${acc.dailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 shadow-inner ${acc.dailyPnL >= 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover/item:shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-rose-500/10 border-rose-500/20 text-rose-400 group-hover/item:shadow-[0_0_15px_rgba(244,63,94,0.3)]'}`}>
+                                            <span className={`material-symbols-outlined text-[28px]`}>
                                                 {acc.dailyPnL >= 0 ? 'trending_up' : 'trending_down'}
                                             </span>
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-white tracking-tight leading-tight">{acc.name}</h3>
+                                            <h3 className="text-lg font-black text-white tracking-tight leading-tight group-hover/item:text-primary transition-colors">{acc.name}</h3>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{acc.type}</span>
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{acc.type} Matrix</span>
                                                 <div className="w-1 h-1 rounded-full bg-white/10" />
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{acc.tradeCount} Trades Today</span>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{acc.tradeCount} Operatives Today</span>
                                             </div>
                                         </div>
                                     </div>
@@ -118,14 +147,16 @@ export default function DailyPnLModal({ isOpen, onClose }) {
                                     <div className="flex items-end gap-10">
                                         {appSettings && !appSettings.hideCapitalOnDailyPnL && (
                                             <div className="text-right">
-                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1">Current Balance</span>
-                                                <span className="text-slate-300 font-bold tracking-tight text-sm">{formatCurrency(acc.balance)}</span>
+                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1">Unit Balance</span>
+                                                <span className="text-slate-300 font-black tracking-tight text-sm">
+                                                    {appSettings.maskBalances ? '****' : formatCurrency(acc.balance)}
+                                                </span>
                                             </div>
                                         )}
                                         <div className="text-right min-w-[140px]">
-                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1">Daily Net Returns</span>
-                                            <span className={`text-2xl font-black tracking-tighter ${acc.dailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {acc.dailyPnL >= 0 ? '+' : ''}{formatCurrency(acc.dailyPnL)}
+                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] block mb-1 font-bold">Daily Net Returns</span>
+                                            <span className={`text-2xl font-black tracking-tighter drop-shadow-md ${acc.dailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {appSettings.maskBalances ? '****' : formatPnL(acc.dailyPnL, acc.capital)}
                                             </span>
                                         </div>
                                     </div>
@@ -136,11 +167,11 @@ export default function DailyPnLModal({ isOpen, onClose }) {
 
                     {accountData.length === 0 && (
                         <div className="py-20 text-center flex flex-col items-center">
-                            <div className="w-20 h-20 rounded-[2rem] bg-white/5 flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-4xl text-slate-600">monitoring</span>
+                            <div className="w-20 h-20 rounded-[2rem] bg-white/5 flex items-center justify-center mb-6 border border-white/5">
+                                <span className="material-symbols-outlined text-4xl text-slate-600 drop-shadow-glow">monitoring</span>
                             </div>
-                            <h4 className="text-lg font-black text-white uppercase tracking-widest">Signal Missing</h4>
-                            <p className="text-slate-500 text-sm mt-2 max-w-[240px]">No active account data detected for the current session.</p>
+                            <h4 className="text-lg font-black text-white uppercase tracking-[0.2em]">Signal Missing</h4>
+                            <p className="text-slate-500 text-sm mt-2 max-w-[240px] font-medium italic">No active account synchronization detected for the current session cycle.</p>
                         </div>
                     )}
                 </div>
@@ -174,18 +205,42 @@ export default function DailyPnLModal({ isOpen, onClose }) {
                                 <div className="inline-flex flex-col items-end">
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 leading-none">Net Result</span>
                                     <span className={`text-6xl font-black tracking-tighter ${totalDailyPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-[0_0_25px_rgba(16,185,129,0.2)]`}>
-                                        {totalDailyPnL >= 0 ? '+' : ''}{formatCurrency(totalDailyPnL)}
+                                        {appSettings.maskBalances ? '****' : formatPnL(totalDailyPnL, accountData.reduce((sum, a) => sum + (a.capital || 0), 0))}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-slate-700" />
-                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Data synchronized via global terminal network</p>
-                        <div className="w-1 h-1 rounded-full bg-slate-700" />
+                    <div className="mt-8 flex flex-col items-center gap-6">
+                        <button
+                            onClick={handleShare}
+                            disabled={isSharing}
+                            className={`group relative px-12 py-5 bg-primary text-white font-black rounded-2xl transition-all duration-500 hover:shadow-[0_0_40px_rgba(124,58,237,0.4)] active:scale-95 disabled:opacity-50 flex items-center gap-4 overflow-hidden`}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-12">share</span>
+                            <span className="text-[11px] uppercase tracking-[0.3em] font-black">{isSharing ? 'Encoding Matrix...' : 'Share Directive'}</span>
+                        </button>
+
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="w-1 h-1 rounded-full bg-slate-700" />
+                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Data synchronized via global terminal network</p>
+                            <div className="w-1 h-1 rounded-full bg-slate-700" />
+                        </div>
                     </div>
+                </div>
+
+                {/* Hidden Capture Area */}
+                <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
+                    <PnLCard
+                        ref={cardRef}
+                        data={{ totalDailyPnL, totalTradesToday, date: todayStr }}
+                        userProfile={userProfile}
+                        stats={stats}
+                        formatCurrency={formatCurrency}
+                        formatPnL={formatPnL}
+                    />
                 </div>
             </div>
         </div>,

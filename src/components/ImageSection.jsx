@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function ImageSection({ value, onChange }) {
+export default function ImageSection({ value, onChange, category = "UNSPECIFIED" }) {
     let images = [];
     try {
         images = value ? JSON.parse(value) : [];
@@ -11,9 +11,12 @@ export default function ImageSection({ value, onChange }) {
 
     const [fullscreenImg, setFullscreenImg] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
 
     const processFiles = (files) => {
         if (!files.length) return;
+        setUploading(true);
 
         let processed = 0;
         const newImages = [...images];
@@ -26,6 +29,7 @@ export default function ImageSection({ value, onChange }) {
                 processed++;
                 if (processed === files.length) {
                     onChange(JSON.stringify(newImages));
+                    setUploading(false);
                 }
             };
             reader.readAsDataURL(file);
@@ -35,7 +39,6 @@ export default function ImageSection({ value, onChange }) {
     const handleUpload = (e) => {
         const files = Array.from(e.target.files);
         processFiles(files);
-        // Reset input
         e.target.value = '';
     };
 
@@ -67,77 +70,165 @@ export default function ImageSection({ value, onChange }) {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 rounded-xl transition-all duration-300 ${isDragging ? 'bg-primary/10 ring-2 ring-primary ring-dashed scale-[1.02]' : ''}`}
+                className={`grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-3xl transition-all duration-500 relative ${isDragging ? 'bg-primary/10 ring-2 ring-primary ring-dashed' : ''}`}
             >
+                {/* Visual Scanner effect during drag */}
+                {isDragging && (
+                    <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden rounded-3xl pointer-events-none">
+                        <div className="w-full h-1 bg-primary/40 absolute top-0 animate-[scan_2s_linear_infinite]" />
+                    </div>
+                )}
+
                 {images.map((img, idx) => (
-                    <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-black shadow-sm cursor-zoom-in">
+                    <div
+                        key={idx}
+                        className="relative group aspect-video rounded-2xl overflow-hidden border border-white/5 bg-black/40 shadow-2xl cursor-zoom-in backdrop-blur-md"
+                    >
                         <img
                             src={img}
                             alt=""
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             onClick={() => setFullscreenImg(img)}
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
-                            <span className="material-symbols-outlined text-white text-[32px] scale-75 group-hover:scale-100 transition-transform duration-300">fullscreen</span>
+
+                        {/* Overlay Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                        {/* Image Meta Information */}
+                        <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                            <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em]">INTEL #{idx + 1}</span>
+                                <span className="text-[7px] text-white/50 uppercase font-mono">{category}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setFullscreenImg(img); }}
+                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/10 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-xs">fullscreen</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                                    className="w-6 h-6 rounded-lg bg-rose-500/80 hover:bg-rose-600 flex items-center justify-center backdrop-blur-md transition-all shadow-lg"
+                                >
+                                    <span className="material-symbols-outlined text-xs text-white">close</span>
+                                </button>
+                            </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
-                            className="absolute top-2 right-2 w-7 h-7 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 scale-75 group-hover:scale-100 z-10"
-                        >
-                            <span className="material-symbols-outlined text-[16px] font-bold">close</span>
-                        </button>
+
+                        {/* Scanlines Effect */}
+                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_2px,3px_100%]" />
                     </div>
                 ))}
 
-                <label className={`aspect-video rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all group ${isDragging ? 'border-primary bg-primary/20' : 'border-slate-200 dark:border-slate-800'}`}>
-                    <input type="file" multiple accept="image/*" onChange={handleUpload} className="hidden" />
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                        <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">add_photo_alternate</span>
-                    </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-primary transition-colors">
-                        {isDragging ? 'Drop Image here' : 'Add Chart'}
-                    </span>
-                </label>
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2.5 transition-all duration-500 group relative overflow-hidden
+                        ${isDragging ? 'border-primary bg-primary/20 scale-105' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-primary/20 hover:border-solid shadow-inner'}`}
+                >
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        multiple
+                        accept="image/*"
+                        onChange={handleUpload}
+                        className="hidden"
+                    />
+
+                    {uploading ? (
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                            <span className="text-[9px] font-black text-primary uppercase tracking-widest animate-pulse">Processing...</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center transition-all duration-500 group-hover:bg-primary/20 group-hover:border-primary/30 group-hover:shadow-[0_0_20px_rgba(124,58,237,0.2)]">
+                                <span className="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors text-2xl">add_photo_alternate</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="block text-[10px] font-black text-slate-400 group-hover:text-white transition-colors uppercase tracking-[0.2em] mb-0.5">
+                                    {isDragging ? 'Release to Scan' : 'Add Intelligence'}
+                                </span>
+                                <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest group-hover:text-primary/60 transition-colors italic">Dossier Attachment</span>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Background Detail */}
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-r border-b border-white/10 rounded-br-2xl group-hover:border-primary/40 transition-colors" />
+                </button>
             </div>
-            {images.length === 0 && !isDragging && (
-                <p className="text-[10px] text-slate-500 italic text-center">No screenshots attached for this category yet or drag & drop here.</p>
+
+            {/* Pagination / Count for power users */}
+            {images.length > 0 && (
+                <div className="flex items-center justify-center gap-3 mt-2">
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest italic">{images.length} UNITS ATTACHED</span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                </div>
             )}
+
+            {/* Custom Scan Animation */}
+            <style>{`
+                @keyframes scan {
+                    from { transform: translateY(0); opacity: 0; }
+                    50% { opacity: 1; }
+                    to { transform: translateY(100px); opacity: 0; }
+                }
+            `}</style>
 
             {/* Fullscreen Overlay */}
             {fullscreenImg && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-in fade-in duration-300"
+                    className="fixed inset-0 z-[1001] flex items-center justify-center bg-[#020617]/95 backdrop-blur-3xl animate-in fade-in duration-300"
                     onClick={() => setFullscreenImg(null)}
                 >
-                    <div className="absolute top-6 right-6 flex gap-4">
+                    <div className="absolute top-8 left-8 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary">zoom_in</span>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Visual Intelligence Preview</h3>
+                            <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.25em]">Tactical Dossier Asset</p>
+                        </div>
+                    </div>
+
+                    <div className="absolute top-8 right-8 flex gap-3">
                         <button
-                            className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all active:scale-95"
+                            className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all active:scale-90"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 const link = document.createElement('a');
                                 link.href = fullscreenImg;
-                                link.download = `chart-screenshot-${Date.now()}.png`;
+                                link.download = `core-intel-${Date.now()}.png`;
                                 link.click();
                             }}
                         >
                             <span className="material-symbols-outlined">download</span>
                         </button>
                         <button
-                            className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all active:scale-95"
+                            className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95"
                             onClick={() => setFullscreenImg(null)}
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
                     </div>
 
-                    <div className="w-full h-full p-12 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    <div className="w-full h-full p-24 flex items-center justify-center" onClick={e => e.stopPropagation()}>
                         <img
                             src={fullscreenImg}
-                            alt="Fullscreen Chart"
-                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-500 transition-transform"
-                            style={{ boxShadow: '0 0 80px -20px rgba(var(--primary-rgb), 0.3)' }}
+                            alt="Fullscreen Intelligence"
+                            className="max-w-full max-h-full object-contain rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/5 animate-in zoom-in-95 duration-500"
                         />
+                    </div>
+
+                    {/* Aesthetic Corner Details */}
+                    <div className="absolute bottom-8 right-8 p-4 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md">
+                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">IMAGE RESOLUTION</div>
+                        <div className="text-xs font-mono text-primary">SCANNED & VERIFIED</div>
                     </div>
                 </div>,
                 document.body

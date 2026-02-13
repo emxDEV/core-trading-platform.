@@ -94,3 +94,23 @@ ALTER TABLE daily_journals ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own daily journals" ON daily_journals
     FOR ALL USING (auth.uid() = user_id);
+
+-- 9. Add Dashboard Config to Profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS dashboard_config JSONB DEFAULT '{
+    "active": [
+        {"id": "totalRisk", "visible": true, "order": 0},
+        {"id": "overviewStats", "visible": true, "order": 1},
+        {"id": "accountsList", "visible": true, "order": 2},
+        {"id": "recentTrades", "visible": true, "order": 3},
+        {"id": "analyticsCharts", "visible": true, "order": 4}
+    ],
+    "templates": {}
+}';
+
+-- 10. Mindset Matrix Updates
+ALTER TABLE trades ADD COLUMN IF NOT EXISTS sentiment_pre TEXT;
+ALTER TABLE trades ADD COLUMN IF NOT EXISTS sentiment_post TEXT;
+
+-- Update profiles with default psychology settings if not exists
+UPDATE profiles SET dashboard_config = dashboard_config || '{"reveng_lockout_enabled": true, "reveng_lockout_threshold": 3}'::jsonb 
+WHERE dashboard_config->>'reveng_lockout_enabled' IS NULL;

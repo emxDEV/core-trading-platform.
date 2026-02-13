@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { soundEngine } from '../utils/SoundEngine';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { translations } from '../constants/i18n';
 
 const TradeContext = createContext();
 
@@ -12,7 +13,8 @@ const ADVANCED_TRADE_COLS = [
     'entry_signal', 'order_type', 'sl_pips', 'confluences',
     'psychology', 'mistakes', 'comment_bias', 'comment_execution',
     'comment_problems', 'comment_fazit', 'image_paths',
-    'images_execution', 'images_condition', 'images_narrative'
+    'images_execution', 'images_condition', 'images_narrative',
+    'sentiment_pre', 'sentiment_post'
 ];
 
 const CORE_ACCOUNT_COLS = ['id', 'name', 'type', 'balance', 'currency', 'capital', 'profit_target', 'max_loss', 'consistency_rule', 'prop_firm', 'reset_date', 'breach_report'];
@@ -24,6 +26,17 @@ const cleanForSupabase = (obj, allowedCols) => {
         if (key in obj && obj[key] !== undefined) cleaned[key] = obj[key];
     }
     return cleaned;
+};
+
+const DEFAULT_DASHBOARD_CONFIG = {
+    active: [
+        { id: 'totalRisk', visible: true, order: 0 },
+        { id: 'overviewStats', visible: true, order: 1 },
+        { id: 'accountsList', visible: true, order: 2 },
+        { id: 'recentTrades', visible: true, order: 3 },
+        { id: 'analyticsCharts', visible: true, order: 4 }
+    ],
+    templates: {}
 };
 
 export const useData = () => {
@@ -138,6 +151,7 @@ export const getAccountStats = (accId, accountsList, tradesList) => {
     };
 };
 
+
 export const TradeProvider = ({ children }) => {
     const { user } = useAuth();
     const [accounts, setAccounts] = useState([]);
@@ -154,7 +168,7 @@ export const TradeProvider = ({ children }) => {
     const [isDailyPnLOpen, setIsDailyPnLOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [dateFilter, setDateFilter] = useState({ type: 'all', startDate: null, endDate: null });
-    const [analyticsFilters, setAnalyticsFilters] = useState({ accountId: 'all', type: 'all' });
+    const [analyticsFilters, setAnalyticsFilters] = useState({ accountId: 'all', type: 'all', symbol: 'all' });
     const syncTimerRef = useRef(null);
     const isSyncingRef = useRef(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -162,6 +176,7 @@ export const TradeProvider = ({ children }) => {
     const [friends, setFriends] = useState([]);
     const [friendRequests, setFriendRequests] = useState([]);
     const [isDailyJournalOpen, setIsDailyJournalOpen] = useState(false);
+    const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
 
     // Schema Capabilities Detection
     const [syncCapabilities, setSyncCapabilities] = useState({
@@ -212,7 +227,8 @@ export const TradeProvider = ({ children }) => {
         location: 'Barcelona, Spain',
         memberSince: '2024',
         tag: '000000',
-        privacy: { isPublic: true, showPnL: true, showWinRate: true, showRank: true }
+        privacy: { isPublic: true, showPnL: true, showWinRate: true, showRank: true },
+        dashboardConfig: DEFAULT_DASHBOARD_CONFIG
     });
 
     // Load/Save User Profile based on user.id
@@ -260,7 +276,8 @@ export const TradeProvider = ({ children }) => {
                         showPnL: true,
                         showWinRate: true,
                         showRank: true
-                    }
+                    },
+                    dashboardConfig: DEFAULT_DASHBOARD_CONFIG
                 };
                 setUserProfile(defaultProfile);
                 localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
@@ -270,20 +287,61 @@ export const TradeProvider = ({ children }) => {
         loadProfile();
     }, [user]);
 
-    const [appSettings, setAppSettings] = useState({
-        cloudSync: true,
-        showPnLInPercent: false,
-        autoSaveTrades: true,
-        defaultRiskPerc: 1.0,
-        enableShortcuts: true,
-        soundEnabled: true,
-        soundVolume: 0.5,
-        maskBalances: false,
-        hideCapitalOnDailyPnL: false,
-        currency: 'USD',
-        timezone: 'UTC +1 (Madrid)',
-        language: 'English (US)'
+    const [appSettings, setAppSettings] = useState(() => {
+        const saved = localStorage.getItem('appSettings');
+        const defaultSettings = {
+            cloudSync: true,
+            showPnLInPercent: false,
+            autoSaveTrades: true,
+            defaultRiskPerc: 1.0,
+            enableShortcuts: true,
+            soundEnabled: true,
+            soundVolume: 0.5,
+            maskBalances: false,
+            hideCapitalOnDailyPnL: false,
+            currency: 'USD',
+            timezone: 'UTC +1 (Madrid)',
+            language: 'English (US)',
+            weekStart: 'MO'
+        };
+        if (saved) {
+            try {
+                return { ...defaultSettings, ...JSON.parse(saved) };
+            } catch (e) {
+                console.error('Failed to parse appSettings:', e);
+            }
+        }
+        return defaultSettings;
     });
+
+    // Sync sound engine on mount
+    useEffect(() => {
+        soundEngine.setEnabled(appSettings.soundEnabled);
+        soundEngine.setVolume(appSettings.soundVolume);
+    }, []);
+
+    // Helper to format currency based on appSettings
+    const formatCurrency = useCallback((val) => {
+        const localeMap = {
+            'English (US)': 'en-US',
+            'German': 'de-DE',
+            'Spanish': 'es-ES'
+        };
+        const locale = localeMap[appSettings.language] || 'en-US';
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: appSettings.currency || 'USD',
+        }).format(val);
+    }, [appSettings.currency, appSettings.language]);
+
+    // Global helper for PnL displays (Currency or Percentage)
+    const formatPnL = useCallback((val, basis = null) => {
+        if (appSettings.showPnLInPercent && basis && basis !== 0) {
+            const perc = (val / basis) * 100;
+            return (perc >= 0 ? '+' : '') + perc.toFixed(2) + '%';
+        }
+        return (val >= 0 ? '+' : '') + formatCurrency(val);
+    }, [appSettings.showPnLInPercent, formatCurrency]);
 
     const [stats, setStats] = useState({
         winRate: 0,
@@ -774,23 +832,63 @@ export const TradeProvider = ({ children }) => {
         return { success: true };
     };
 
+    const removeFriend = async (friendId) => {
+        if (!user) return { success: false, error: 'Auth required' };
+        const { error } = await supabase
+            .from('friends')
+            .delete()
+            .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`);
+
+        if (error) return { success: false, error: error.message };
+        await loadFriends();
+        return { success: true };
+    };
+
     const syncProfileToCloud = async () => {
         if (!user || !userProfile) return;
 
         // Push user profile to the public 'profiles' table for social features
+        // Calculate Weekly Stats for Leaderboard
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        const day = now.getDay() || 7; // 1 (Mon) - 7 (Sun)
+        startOfWeek.setHours(0, 0, 0, 0);
+        if (day !== 1) startOfWeek.setDate(now.getDate() - (day - 1));
+
+        const weeklyTrades = trades.filter(t => {
+            if (!t.date) return false;
+            const tDate = new Date(t.date);
+            return tDate >= startOfWeek;
+        });
+
+        const weeklyWinners = weeklyTrades.filter(t => t.pnl > 0);
+        const weeklyLosers = weeklyTrades.filter(t => t.pnl <= 0);
+        const weeklyWinRate = weeklyTrades.length > 0 ? (weeklyWinners.length / weeklyTrades.length) * 100 : 0;
+
+        const weeklyGrossProfit = weeklyWinners.reduce((sum, t) => sum + t.pnl, 0);
+        const weeklyGrossLoss = Math.abs(weeklyLosers.reduce((sum, t) => sum + t.pnl, 0));
+        const weeklyPF = weeklyGrossLoss === 0 ? (weeklyGrossProfit > 0 ? 10 : 0) : weeklyGrossProfit / weeklyGrossLoss;
+
+        const weeklyConsistency = Math.round(Math.min(100, Math.max(0, (weeklyWinRate * 0.5) + (Math.min(weeklyPF, 3) * 16))));
+        const weeklyPnL = weeklyTrades.reduce((sum, t) => sum + t.pnl, 0);
+
         const profileData = {
             id: user.id,
             name: userProfile.name,
             avatar_url: userProfile.avatar,
             bio: userProfile.bio,
             rank_name: stats.rank?.name,
-            rank_level: stats.level || 1, // Store numerical level for easier sorting/filtering
+            rank_level: stats.level || 1,
             xp: Math.floor(stats.xp),
             win_rate: (userProfile.privacy?.showPnL ?? true) ? parseFloat(stats.winRate) : null,
             total_pnl: (userProfile.privacy?.showPnL ?? true) ? stats.totalPnL : null,
+            weekly_consistency_score: weeklyConsistency,
+            weekly_pnl: weeklyPnL,
+            total_trades: trades.length,
             tag: userProfile.tag,
             last_active: new Date().toISOString(),
-            is_public: userProfile.privacy?.isPublic ?? true
+            is_public: userProfile.privacy?.isPublic ?? true,
+            dashboard_config: userProfile.dashboardConfig || DEFAULT_DASHBOARD_CONFIG
         };
 
         const { error } = await supabase
@@ -1120,11 +1218,25 @@ export const TradeProvider = ({ children }) => {
                 if (grpData) cloudGroups = grpData;
             }
 
-            // 3c. Fetch User Profile from Metadata
-            const { data: { user: freshUser }, error: userErr } = await supabase.auth.getUser();
-            if (freshUser?.user_metadata?.profile) {
-                // Update local profile immediately
-                updateUserProfile(freshUser.user_metadata.profile);
+            // 3c. Fetch User Profile from Cloud
+            const { data: profileData, error: profErr } = await supabase
+                .from('profiles')
+                .select('dashboard_config, name, avatar_url, bio, tag, is_public')
+                .eq('id', user.id)
+                .single();
+
+            if (!profErr && profileData) {
+                updateUserProfile({
+                    name: profileData.name || userProfile.name,
+                    avatar: profileData.avatar_url || userProfile.avatar,
+                    bio: profileData.bio || userProfile.bio,
+                    tag: profileData.tag || userProfile.tag,
+                    privacy: {
+                        ...userProfile.privacy,
+                        isPublic: profileData.is_public ?? true
+                    },
+                    dashboardConfig: profileData.dashboard_config || DEFAULT_DASHBOARD_CONFIG
+                });
             }
 
             // Check if there is ANY data to sync
@@ -1277,6 +1389,12 @@ export const TradeProvider = ({ children }) => {
     const closeModal = () => { setIsModalOpen(false); setTradeToEdit(null); };
     const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
 
+    // Translation helper
+    const t = useCallback((key) => {
+        const lang = appSettings.language || 'English (US)';
+        return translations[lang]?.[key] || translations['English (US)']?.[key] || key;
+    }, [appSettings.language]);
+
     return (
         <TradeContext.Provider value={{
             trades, allTrades: trades, filteredTrades, stats, accounts, addTrade, deleteTrade, undoDeleteTrade, updateTrade,
@@ -1290,10 +1408,11 @@ export const TradeProvider = ({ children }) => {
             ranks: RANKS, getAccountStats: getStatsWrapper,
             dateFilter, setDateFilter,
             analyticsFilters, setAnalyticsFilters,
-            dailyJournals, saveDailyJournal,
-            friends, friendRequests, sendFriendRequest, acceptFriendRequest, loadFriends,
-            isDailyJournalOpen, setIsDailyJournalOpen,
+            dailyJournals, saveDailyJournal, isDailyJournalOpen, setIsDailyJournalOpen,
+            friends, friendRequests, sendFriendRequest, acceptFriendRequest, removeFriend, loadFriends,
+            formatPnL, formatCurrency, t,
             syncProfileToCloud,
+            isCommandCenterOpen, setIsCommandCenterOpen,
             isLoading, migrateToCloud, syncToCloud, importFromCloud, isSyncing,
             supabase
         }}>

@@ -15,7 +15,7 @@ import { PropFirmPicker, AccountPicker } from './AccountPickers';
 import { CelebrationModal, BreachModal, PayoutGoalModal } from './modals/OutcomeModals';
 
 export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
-    const { addTrade, updateTrade, updateAccount, deleteAccount, accounts, addAccount, trades, getAccountStats, copyGroups } = useData();
+    const { addTrade, updateTrade, updateAccount, deleteAccount, accounts, addAccount, trades, getAccountStats, copyGroups, appSettings, userProfile } = useData();
     const { showSuccess, showError, showWarning, confirm } = useNotifications();
     const [isVisible, setIsVisible] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -44,6 +44,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
         pnl: '',
         psychology: '',
         mistakes: '',
+        sentiment_pre: '',
+        sentiment_post: '',
         comment_bias: '',
         comment_execution: '',
         comment_problems: '',
@@ -80,6 +82,24 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     const [breachData, setBreachData] = useState(null);
     const [showPayoutGoal, setShowPayoutGoal] = useState(false);
     const [payoutGoalData, setPayoutGoalData] = useState(null);
+    const isSubmitting = useRef(false);
+    const hasSubmitted = useRef(false);
+
+    // psychology sentiments
+    const PRE_TRADE_EMOTIONS = [
+        { label: 'Disciplined', icon: '🧘', id: 'disciplined' },
+        { label: 'Focused', icon: '🎯', id: 'focused' },
+        { label: 'Nervous', icon: '😨', id: 'nervous' },
+        { label: 'Aggressive', icon: '😤', id: 'aggressive' },
+    ];
+
+    const POST_TRADE_EMOTIONS = [
+        { label: 'Gratified', icon: '😊', id: 'gratified' },
+        { label: 'FOMO', icon: '😤', id: 'fomo' },
+        { label: 'Revenge', icon: '🎢', id: 'revenge' },
+        { label: 'Regret', icon: '😔', id: 'regret' },
+    ];
+
 
     // Form Validation Helpers
     const isNewAccountReady = useMemo(() => {
@@ -144,7 +164,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     }, [trades]);
 
     useEffect(() => {
-        if (tradeToEdit) {
+        if (tradeToEdit && tradeToEdit.id) {
             setFormData({
                 id: tradeToEdit.id,
                 account_id: tradeToEdit.account_id || (accounts.length > 0 ? accounts[0].id : ''),
@@ -161,6 +181,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                 pnl: tradeToEdit.pnl || '',
                 psychology: tradeToEdit.psychology || '',
                 mistakes: tradeToEdit.mistakes || '',
+                sentiment_pre: tradeToEdit.sentiment_pre || '',
+                sentiment_post: tradeToEdit.sentiment_post || '',
                 comment_bias: tradeToEdit.comment_bias || '',
                 comment_execution: tradeToEdit.comment_execution || '',
                 comment_problems: tradeToEdit.comment_problems || '',
@@ -172,32 +194,35 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                 trade_session: tradeToEdit.trade_session || ''
             });
         } else if (isOpen) {
+            hasSubmitted.current = false;
             // Reset for new trade
             setFormData(prev => ({
                 ...prev,
-                account_id: prev.account_id || (accounts.length > 0 ? accounts[0].id : ''),
-                date: new Date().toISOString().split('T')[0],
-                symbol: '',
-                model: '',
-                bias: '',
-                side: 'LONG',
-                confluences: '',
-                entry_signal: '',
-                order_type: 'Market',
-                sl_pips: '',
-                risk_percent: '',
-                pnl: '',
-                psychology: '',
-                mistakes: '',
-                comment_bias: '',
-                comment_execution: '',
-                comment_problems: '',
-                comment_fazit: '',
-                image_paths: '',
-                images_execution: '',
-                images_condition: '',
-                images_narrative: '',
-                trade_session: ''
+                account_id: tradeToEdit?.account_id || prev.account_id || (accounts.length > 0 ? accounts[0].id : ''),
+                date: tradeToEdit?.date || new Date().toISOString().split('T')[0],
+                symbol: tradeToEdit?.symbol || '',
+                model: tradeToEdit?.model || '',
+                bias: tradeToEdit?.bias || '',
+                side: tradeToEdit?.side || 'LONG',
+                confluences: tradeToEdit?.confluences || '',
+                entry_signal: tradeToEdit?.entry_signal || '',
+                order_type: tradeToEdit?.order_type || 'Market',
+                sl_pips: tradeToEdit?.sl_pips || '',
+                risk_percent: tradeToEdit?.risk_percent || appSettings.defaultRiskPerc || '',
+                pnl: tradeToEdit?.pnl || '',
+                psychology: tradeToEdit?.psychology || '',
+                mistakes: tradeToEdit?.mistakes || '',
+                sentiment_pre: tradeToEdit?.sentiment_pre || '',
+                sentiment_post: tradeToEdit?.sentiment_post || '',
+                comment_bias: tradeToEdit?.comment_bias || '',
+                comment_execution: tradeToEdit?.comment_execution || '',
+                comment_problems: tradeToEdit?.comment_problems || '',
+                comment_fazit: tradeToEdit?.comment_fazit || '',
+                image_paths: tradeToEdit?.image_paths || '',
+                images_execution: tradeToEdit?.images_execution || '',
+                images_condition: tradeToEdit?.images_condition || '',
+                images_narrative: tradeToEdit?.images_narrative || '',
+                trade_session: tradeToEdit?.trade_session || ''
             }));
         }
     }, [tradeToEdit, isOpen]);
@@ -236,6 +261,10 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                 });
             });
         } else {
+            // Instant Commit Logic: Save if enabled, valid, and not editing
+            if (appSettings.autoSaveTrades && isTradeReady && !tradeToEdit && !hasSubmitted.current) {
+                handleSubmit({ preventDefault: () => { } });
+            }
             setIsAnimating(false);
             const timer = setTimeout(() => setIsVisible(false), 500);
             return () => clearTimeout(timer);
@@ -275,7 +304,10 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
+
+        if (isSubmitting.current) return;
+        isSubmitting.current = true;
 
         // Wait for PillInput onBlur to update state
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -381,13 +413,14 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
         analyzeAccountStatus(mainAcc, tradeData.pnl);
 
         let success = false;
-        if (tradeToEdit) {
+        if (tradeToEdit && tradeToEdit.id) {
             success = await updateTrade(tradeData);
             if (success) showSuccess("Trade updated successfully");
         } else {
             success = await addTrade(tradeData);
             if (success) {
                 showSuccess("Trade saved successfully");
+                hasSubmitted.current = true; // Mark early to prevent auto-save double trigger!
 
                 // --- COPY TRADING LOGIC ---
                 const activeCopyGroups = copyGroups.filter(g => g.is_active && String(g.leader_account_id) === String(tradeData.account_id));
@@ -408,7 +441,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                 account_id: member.follower_account_id,
                                 pnl: followerPnL,
                                 risk_percent: (parseFloat(tradeData.risk_percent) || 0) * multiplier,
-                                comment_execution: `[CopyTrade] Copied from Leader (x${multiplier})`,
+                                // Inherit all parameters from leader via spread in followerTrade
+
                             };
                             delete followerTrade.id; // Ensure new
 
@@ -438,12 +472,15 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
         } else {
             // Close if no events (and success)
             if (success) {
+                hasSubmitted.current = true;
                 onClose();
                 setActiveTab('general');
             } else if (!success) {
                 showError("Fehler beim Speichern des Trades");
             }
         }
+
+        isSubmitting.current = false;
     };
 
     // Consistency rule check: warn if a single day's profit exceeds the threshold
@@ -473,7 +510,6 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
             .filter(t => String(t.account_id) === String(account.id) && (!tradeToEdit || t.id !== tradeToEdit.id))
             .reduce((sum, t) => sum + (t.pnl || 0), 0) + currentPnl;
 
-        // The warning only triggers if the user is actually entering a profit (currentPnl > 0)
         // AND today's total profit is a breach AND the entire account is in a breach-relevant profit level
         if (currentPnl > 0 && totalDayPnL > maxDailyProfit && totalAccountPnL > maxDailyProfit) {
             setConsistencyWarning({
@@ -496,8 +532,8 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
     if (!isOpen && !isVisible) return null;
 
-    const inputClass = "w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white text-sm";
-    const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2";
+    const inputClass = "w-full bg-[#0F172A]/40 dark:bg-black/20 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-primary/10 border-primary/20 hover:border-white/20 transition-all font-bold text-white text-sm placeholder:text-slate-600";
+    const labelClass = "block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2.5 px-1";
 
     const tabs = [
         { id: 'general', label: 'General', icon: 'info' },
@@ -512,40 +548,57 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
             <AccountStatsTooltip hoveredAccount={hoveredAccount} accounts={accounts} trades={trades} getAccountStats={getAccountStats} />
             {createPortal(
                 <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ease-out ${isAnimating ? 'bg-black/70 backdrop-blur-md opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
+                    className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.23, 1, 0.32, 1)] ${isAnimating ? 'bg-[#020617]/80 backdrop-blur-xl opacity-100' : 'bg-black/0 backdrop-blur-none opacity-0'}`}
                     onClick={onClose}
                 >
                     <div
-                        className={`bg-white dark:bg-surface-dark rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-95 translate-y-8 opacity-0 blur-md'}`}
+                        className={`bg-[#0F172A]/90 backdrop-blur-3xl rounded-[3rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/10 transition-all duration-700 ease-[cubic-bezier(0.34, 1.56, 0.64, 1)] transform ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Header */}
-                        <div className="flex justify-between items-center px-8 pt-8 pb-6">
-                            <div>
-                                <h2 className="text-2xl font-bold dark:text-white">{tradeToEdit ? 'Edit Trade' : 'New Trade'}</h2>
-                                <p className="text-sm text-slate-400 mt-1">{tradeToEdit ? 'Update position details' : 'Record a new position in your journal'}</p>
+                        {/* Header - Tactical Execution */}
+                        <div className="flex justify-between items-center px-10 pt-10 pb-8 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-primary/5 opacity-30 blur-[60px] -z-10" />
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
+                                    <span className="material-symbols-outlined text-primary text-[32px] drop-shadow-glow">
+                                        {tradeToEdit ? 'edit_square' : 'add_notes'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-white tracking-tighter uppercase">{tradeToEdit ? 'Edit Execution' : 'Precision Entry'}</h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{tradeToEdit ? 'Updating Operational Parameters' : 'Deploying New Performance Data'}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            <button
+                                onClick={onClose}
+                                className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-500 hover:bg-white/10 hover:text-white transition-all group/close border border-transparent hover:border-white/10"
+                            >
+                                <span className="material-symbols-outlined text-[24px] group-hover/close:rotate-90 transition-transform duration-500">close</span>
                             </button>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="flex px-8 gap-1">
+                        {/* Tabs - Command Navigation */}
+                        <div className="flex px-10 gap-1 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all border-b-2 ${activeTab === tab.id
-                                        ? 'border-primary text-primary bg-primary/5'
-                                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                                    className={`flex items-center gap-2 px-4 py-4 text-[10px] font-black uppercase tracking-[0.1em] transition-all relative
+                                        ${activeTab === tab.id
+                                            ? 'text-primary'
+                                            : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                                 >
-                                    <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                                    <span className={`material-symbols-outlined text-[18px] transition-all ${activeTab === tab.id ? 'drop-shadow-glow scale-110' : ''}`}>{tab.icon}</span>
                                     {tab.label}
+                                    {activeTab === tab.id && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
+                                    )}
                                 </button>
                             ))}
                         </div>
-                        <div className="border-b border-slate-100 dark:border-slate-800"></div>
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto px-10 py-10">
@@ -723,60 +776,72 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             )}
 
                                             {!isAddingAccount ? (
-                                                <AccountPicker
-                                                    selectedId={formData.account_id}
-                                                    onSelect={(id) => setFormData(prev => ({ ...prev, account_id: id }))}
-                                                    isOpen={showAccountPicker}
-                                                    setOpen={setShowAccountPicker}
-                                                    onAddAccount={() => setIsAddingAccount(true)}
-                                                    accounts={accounts}
-                                                    setHoveredAccount={setHoveredAccount}
-                                                    setAccountContextMenu={setAccountContextMenu}
-                                                />
+                                                <div className="group/picker relative">
+                                                    <AccountPicker
+                                                        selectedId={formData.account_id}
+                                                        onSelect={(id) => setFormData(prev => ({ ...prev, account_id: id }))}
+                                                        isOpen={showAccountPicker}
+                                                        setOpen={setShowAccountPicker}
+                                                        onAddAccount={() => setIsAddingAccount(true)}
+                                                        accounts={accounts}
+                                                        setHoveredAccount={setHoveredAccount}
+                                                        setAccountContextMenu={setAccountContextMenu}
+                                                    />
+                                                    {/* Selection Glow */}
+                                                    <div className="absolute inset-0 bg-primary/5 blur-xl -z-10 opacity-0 group-hover/picker:opacity-100 transition-opacity duration-500" />
+                                                </div>
                                             ) : (
-                                                /* Add Account Form */
-                                                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-4 space-y-3">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="material-symbols-outlined text-[16px] text-emerald-400">add_circle</span>
-                                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">New Account</span>
+                                                /* Add Account Form - Tactical Unit Initialization */
+                                                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 space-y-6 relative overflow-hidden group/newacc animate-in zoom-in-95 duration-500">
+                                                    <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                                                        <span className="material-symbols-outlined text-[80px]">add_task</span>
                                                     </div>
+
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[20px] text-emerald-400">add_circle</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Initialize New Unit</span>
+                                                    </div>
+
                                                     <input
                                                         type="text"
-                                                        placeholder="Account name..."
+                                                        placeholder="Unit identifier (e.g. Master Funded)..."
                                                         value={newAccountName}
                                                         onChange={(e) => setNewAccountName(e.target.value)}
-                                                        className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white text-sm"
+                                                        className={inputClass}
                                                         autoFocus
                                                     />
-                                                    <div className="flex flex-wrap gap-2">
+
+                                                    <div className="flex flex-wrap gap-2.5">
                                                         {ACCOUNT_TYPES.map(type => (
                                                             <button
                                                                 key={type}
                                                                 type="button"
                                                                 onClick={() => setNewAccountType(type)}
-                                                                className={`flex-1 min-w-[60px] py-2 rounded-lg text-xs font-bold border transition-all ${newAccountType === type
+                                                                className={`flex-1 min-w-[80px] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 transform active:scale-[0.98] ${newAccountType === type
                                                                     ? (TYPE_COLORS[type]?.active || '')
-                                                                    : 'bg-transparent text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`}
+                                                                    : 'bg-white/[0.02] text-slate-500 border-white/5 hover:border-white/10 hover:text-slate-300'}`}
                                                             >
                                                                 {type}
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    {/* Capital — all types */}
-                                                    <div>
-                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Account Capital ($)</label>
-                                                        <CurrencyInput
-                                                            placeholder="e.g. 100000"
-                                                            value={newAccountCapital}
-                                                            onChange={(val) => setNewAccountCapital(val)}
-                                                            className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white text-sm"
-                                                        />
-                                                    </div>
-                                                    {/* Evaluation / Funded specific fields */}
-                                                    {(newAccountType === 'Evaluation' || newAccountType === 'Funded') && (
-                                                        <>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className={labelClass}>Initial Capital (USD)</label>
+                                                            <CurrencyInput
+                                                                placeholder="e.g. 100000"
+                                                                value={newAccountCapital}
+                                                                onChange={(val) => setNewAccountCapital(val)}
+                                                                className={inputClass}
+                                                            />
+                                                        </div>
+
+                                                        {(newAccountType === 'Evaluation' || newAccountType === 'Funded') && (
                                                             <div>
-                                                                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Prop Firm</label>
+                                                                <label className={labelClass}>Operational Firm</label>
                                                                 <PropFirmPicker
                                                                     selectedFirm={newAccountPropFirm}
                                                                     onSelect={(firm) => setNewAccountPropFirm(firm)}
@@ -784,59 +849,71 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                                     setOpen={setShowPropFirmPicker}
                                                                 />
                                                             </div>
-                                                            <div className={`grid ${newAccountType === 'Evaluation' ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
-                                                                {newAccountType === 'Evaluation' && (
-                                                                    <div>
-                                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1 block">Profit Target ($)</label>
-                                                                        <CurrencyInput
-                                                                            placeholder="e.g. 10000"
-                                                                            value={newAccountProfitTarget}
-                                                                            onChange={(val) => setNewAccountProfitTarget(val)}
-                                                                            className="w-full bg-white dark:bg-background-dark border border-emerald-500/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 dark:text-emerald-300 text-sm"
-                                                                        />
-                                                                    </div>
-                                                                )}
+                                                        )}
+                                                    </div>
+
+                                                    {(newAccountType === 'Evaluation' || newAccountType === 'Funded') && (
+                                                        <div className="grid grid-cols-2 gap-6 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                                            {newAccountType === 'Evaluation' && (
                                                                 <div>
-                                                                    <label className="text-[10px] font-bold uppercase tracking-wider text-red-400 mb-1 block">Max Loss ($)</label>
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-400/70 mb-2 block">Capture Target</label>
                                                                     <CurrencyInput
-                                                                        placeholder="e.g. 5000"
-                                                                        value={newAccountMaxLoss}
-                                                                        onChange={(val) => setNewAccountMaxLoss(val)}
-                                                                        className="w-full bg-white dark:bg-background-dark border border-red-500/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500/50 dark:text-red-300 text-sm"
+                                                                        placeholder="Target"
+                                                                        value={newAccountProfitTarget}
+                                                                        onChange={(val) => setNewAccountProfitTarget(val)}
+                                                                        className={`${inputClass} !border-emerald-500/20 !bg-emerald-500/5 !text-emerald-400`}
                                                                     />
                                                                 </div>
-                                                            </div>
+                                                            )}
                                                             <div>
-                                                                <label className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1 block">Consistency Rule (%)</label>
-                                                                <div className="relative">
-                                                                    <input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        max="100"
-                                                                        placeholder="e.g. 50"
-                                                                        value={newAccountConsistency}
-                                                                        onChange={(e) => setNewAccountConsistency(e.target.value)}
-                                                                        className="w-full bg-white dark:bg-background-dark border border-amber-500/40 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-amber-300 text-sm"
-                                                                    />
-                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 text-sm font-bold">%</span>
-                                                                </div>
-                                                                <p className="text-[10px] text-amber-500/60 mt-1">Max % of profit target allowed in a single day</p>
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-rose-400/70 mb-2 block">Terminal Breach</label>
+                                                                <CurrencyInput
+                                                                    placeholder="Max Loss"
+                                                                    value={newAccountMaxLoss}
+                                                                    onChange={(val) => setNewAccountMaxLoss(val)}
+                                                                    className={`${inputClass} !border-rose-500/20 !bg-rose-500/5 !text-rose-400`}
+                                                                />
                                                             </div>
-                                                        </>
+                                                        </div>
                                                     )}
-                                                    <div className="flex gap-2 pt-1">
+
+                                                    {newAccountType === 'Evaluation' && (
+                                                        <div className="p-5 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mb-2 block">Consistency Protocol (%)</label>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="100"
+                                                                    placeholder="50"
+                                                                    value={newAccountConsistency}
+                                                                    onChange={(e) => setNewAccountConsistency(e.target.value)}
+                                                                    className={`${inputClass} !border-amber-500/20 !bg-amber-500/5 !text-amber-400 pr-12`}
+                                                                />
+                                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-amber-500/50 text-xs font-black">%</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex gap-4 pt-4">
                                                         <button
                                                             type="button"
                                                             onClick={handleAccountSubmit}
                                                             disabled={!isNewAccountReady}
-                                                            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${isNewAccountReady
-                                                                ? 'bg-primary text-white hover:bg-primary/90 active:scale-95 shadow-lg shadow-primary/20'
-                                                                : 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
+                                                            className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 transform active:scale-[0.98] ${isNewAccountReady
+                                                                ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-light'
+                                                                : 'bg-white/5 border border-white/10 text-slate-600'
                                                                 }`}
                                                         >
-                                                            Create
+                                                            Deploy Unit
                                                         </button>
-                                                        <button type="button" onClick={() => setIsAddingAccount(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-slate-200 transition-colors">Cancel</button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsAddingAccount(false)}
+                                                            className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+                                                        >
+                                                            Cancel
+                                                        </button>
                                                     </div>
                                                 </div>
                                             )}
@@ -847,7 +924,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             <div className="grid grid-cols-2 gap-5">
                                                 <div className="relative" ref={inputRefs.date}>
                                                     <ModernDatePicker
-                                                        label="Date"
+                                                        label="Deployment Date"
                                                         value={formData.date}
                                                         onChange={(val) => setFormData(prev => ({ ...prev, date: val }))}
                                                         error={formErrors.date}
@@ -855,94 +932,109 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     <ValidationTooltip message={formErrors.date} isVisible={!!formErrors.date} anchorRef={inputRefs.date} />
                                                 </div>
                                                 <div className="relative">
-                                                    <label className={labelClass}>Session</label>
-                                                    <PillInput
-                                                        value={formData.trade_session}
-                                                        onChange={(val) => setFormData(prev => ({ ...prev, trade_session: val }))}
-                                                        suggestions={sessionSuggestions}
-                                                        placeholder="e.g. London"
-                                                        category="session"
-                                                        defaultColor="sky"
-                                                    />
+                                                    <label className={labelClass}>Active Session</label>
+                                                    <div className="relative group/pill">
+                                                        <PillInput
+                                                            value={formData.trade_session}
+                                                            onChange={(val) => setFormData(prev => ({ ...prev, trade_session: val }))}
+                                                            suggestions={sessionSuggestions}
+                                                            placeholder="e.g. London"
+                                                            category="session"
+                                                            defaultColor="sky"
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
+                                                            <span className="material-symbols-outlined text-sm">schedule</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             {/* Row 2: Symbol & Model */}
                                             <div className="grid grid-cols-2 gap-5">
                                                 <div className="relative" ref={inputRefs.symbol}>
-                                                    <label className={labelClass}>Symbol</label>
-                                                    <PillInput
-                                                        value={formData.symbol}
-                                                        onChange={(val) => {
-                                                            setFormData(prev => ({ ...prev, symbol: val }));
-                                                            if (formErrors.symbol) setFormErrors(prev => ({ ...prev, symbol: null }));
-                                                        }}
-                                                        suggestions={symbolSuggestions}
-                                                        placeholder="e.g. EUR/USD, NAS100..."
-                                                        defaultColor="sky"
-                                                        category="symbol"
-                                                        style={{ textTransform: 'uppercase' }}
-                                                    />
+                                                    <label className={labelClass}>Asset Identifier</label>
+                                                    <div className="relative group/pill">
+                                                        <PillInput
+                                                            value={formData.symbol}
+                                                            onChange={(val) => {
+                                                                setFormData(prev => ({ ...prev, symbol: val }));
+                                                                if (formErrors.symbol) setFormErrors(prev => ({ ...prev, symbol: null }));
+                                                            }}
+                                                            suggestions={symbolSuggestions}
+                                                            placeholder="e.g. EUR/USD..."
+                                                            defaultColor="sky"
+                                                            category="symbol"
+                                                            style={{ textTransform: 'uppercase' }}
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
+                                                            <span className="material-symbols-outlined text-sm">currency_exchange</span>
+                                                        </div>
+                                                    </div>
                                                     <ValidationTooltip message={formErrors.symbol} isVisible={!!formErrors.symbol} anchorRef={inputRefs.symbol} />
                                                 </div>
 
                                                 <div>
-                                                    <label className={labelClass}>Model / Setup</label>
-                                                    <PillInput
-                                                        value={formData.model}
-                                                        onChange={(val) => setFormData(prev => ({ ...prev, model: val }))}
-                                                        suggestions={modelSuggestions}
-                                                        placeholder="e.g. Silver Bullet, Breaker Block..."
-                                                        defaultColor="violet"
-                                                        category="model"
-                                                    />
+                                                    <label className={labelClass}>Tactical Model</label>
+                                                    <div className="relative group/pill">
+                                                        <PillInput
+                                                            value={formData.model}
+                                                            onChange={(val) => setFormData(prev => ({ ...prev, model: val }))}
+                                                            suggestions={modelSuggestions}
+                                                            placeholder="e.g. Silver Bullet..."
+                                                            defaultColor="violet"
+                                                            category="model"
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
+                                                            <span className="material-symbols-outlined text-sm">architecture</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             {/* Row 3: Bias & Position */}
                                             <div className="grid grid-cols-2 gap-5">
                                                 <div>
-                                                    <label className={labelClass}>Bias</label>
-                                                    <div className="flex gap-2">
+                                                    <label className={labelClass}>Operational Bias</label>
+                                                    <div className="flex gap-2.5">
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, bias: 'Bullish' }))}
-                                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold border transition-all ${formData.bias === 'Bullish'
-                                                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-                                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-500/30 hover:text-emerald-400'}`}
+                                                            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border transition-all duration-300 transform active:scale-[0.98] ${formData.bias === 'Bullish'
+                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                                                : 'bg-white/[0.02] border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'}`}
                                                         >
-                                                            <span className={`w-2 h-2 rounded-full ${formData.bias === 'Bullish' ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
-                                                            Bullish
+                                                            <span className={`material-symbols-outlined text-[20px] ${formData.bias === 'Bullish' ? 'drop-shadow-glow' : ''}`}>trending_up</span>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Bullish</span>
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, bias: 'Bearish' }))}
-                                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold border transition-all ${formData.bias === 'Bearish'
-                                                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 shadow-lg shadow-rose-500/10'
-                                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-rose-500/30 hover:text-rose-400'}`}
+                                                            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border transition-all duration-300 transform active:scale-[0.98] ${formData.bias === 'Bearish'
+                                                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                                                                : 'bg-white/[0.02] border-white/5 text-slate-500 hover:border-white/10 hover:text-slate-300'}`}
                                                         >
-                                                            <span className={`w-2 h-2 rounded-full ${formData.bias === 'Bearish' ? 'bg-rose-400' : 'bg-slate-400'}`}></span>
-                                                            Bearish
+                                                            <span className={`material-symbols-outlined text-[20px] ${formData.bias === 'Bearish' ? 'drop-shadow-glow' : ''}`}>trending_down</span>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Bearish</span>
                                                         </button>
                                                     </div>
                                                 </div>
 
                                                 <div>
-                                                    <label className={labelClass}>Position</label>
-                                                    <div className="flex bg-slate-50 dark:bg-background-dark rounded-xl p-1 border border-slate-200 dark:border-slate-700">
+                                                    <label className={labelClass}>Entry Vector</label>
+                                                    <div className="flex bg-white/[0.03] rounded-2xl p-1.5 border border-white/10 h-[62px]">
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, side: 'LONG' }))}
-                                                            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${formData.side === 'LONG' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'LONG' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                                                         >
-                                                            LONG
+                                                            LONG UNIT
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, side: 'SHORT' }))}
-                                                            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${formData.side === 'SHORT' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${formData.side === 'SHORT' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                                                         >
-                                                            SHORT
+                                                            SHORT UNIT
                                                         </button>
                                                     </div>
                                                 </div>
@@ -951,18 +1043,21 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             {/* Row 4: Net P&L */}
                                             <div className="grid grid-cols-2 gap-5">
                                                 <div className="relative" ref={inputRefs.pnl}>
-                                                    <label className={labelClass}>Net P&L ($)</label>
-                                                    <CurrencyInput
-                                                        name="pnl"
-                                                        required
-                                                        placeholder="0.00"
-                                                        value={formData.pnl}
-                                                        onChange={(e) => {
-                                                            handleChange(e);
-                                                            if (formErrors.pnl) setFormErrors(prev => ({ ...prev, pnl: null }));
-                                                        }}
-                                                        className={`${inputClass} !font-bold ${formErrors.pnl ? 'border-rose-500/50 bg-rose-500/5' : ''} ${parseFloat(formData.pnl) > 0 ? '!text-emerald-500' : parseFloat(formData.pnl) < 0 ? '!text-rose-500' : formData.pnl !== '' ? '!text-amber-500' : ''}`}
-                                                    />
+                                                    <label className={labelClass}>Net Performance (USD)</label>
+                                                    <div className="relative group/pnl">
+                                                        <CurrencyInput
+                                                            name="pnl"
+                                                            required
+                                                            placeholder="0.00"
+                                                            value={formData.pnl}
+                                                            onChange={(e) => {
+                                                                handleChange(e);
+                                                                if (formErrors.pnl) setFormErrors(prev => ({ ...prev, pnl: null }));
+                                                            }}
+                                                            className={`${inputClass} !font-black !text-xl tracking-tighter ${formErrors.pnl ? 'border-rose-500/50 ring-4 ring-rose-500/10' : ''} ${parseFloat(formData.pnl) > 0 ? '!text-emerald-400 drop-shadow-glow' : parseFloat(formData.pnl) < 0 ? '!text-rose-400 drop-shadow-glow' : formData.pnl !== '' ? '!text-amber-400' : ''}`}
+                                                        />
+                                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest pointer-events-none group-hover/pnl:text-slate-500 transition-colors">Yield Output</div>
+                                                    </div>
                                                     <ValidationTooltip message={formErrors.pnl} isVisible={!!formErrors.pnl} anchorRef={inputRefs.pnl} />
                                                     {consistencyWarning && (
                                                         <div className={`mt-2 p-3 rounded-xl border flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1 duration-300 ${consistencyWarning.severity === 'danger' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}>
@@ -981,16 +1076,16 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                     <div className="space-y-8">
                                         <div className="grid grid-cols-2 gap-8">
                                             <div>
-                                                <label className={labelClass}>Order Type</label>
-                                                <div className="flex gap-2">
+                                                <label className={labelClass}>Transmission Type</label>
+                                                <div className="flex gap-2.5 bg-white/[0.03] p-1.5 rounded-2xl border border-white/10 h-[62px]">
                                                     {['Market', 'Limit', 'Stop'].map(type => (
                                                         <button
                                                             key={type}
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, order_type: type }))}
-                                                            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${formData.order_type === type
-                                                                ? 'bg-primary/10 text-primary border-primary/30'
-                                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary/20'}`}
+                                                            className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] ${formData.order_type === type
+                                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                                                         >
                                                             {type}
                                                         </button>
@@ -998,77 +1093,173 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className={labelClass}>Entry Signal</label>
-                                                <PillInput
-                                                    value={formData.entry_signal}
-                                                    onChange={(val) => setFormData(prev => ({ ...prev, entry_signal: val }))}
-                                                    suggestions={entrySignalSuggestions}
-                                                    placeholder="e.g. FVG Tap, OB Reaction..."
-                                                    defaultColor="amber"
-                                                    category="entry_signal"
-                                                />
+                                                <label className={labelClass}>Execution Signal</label>
+                                                <div className="relative group/pill min-h-[62px] flex items-center">
+                                                    <PillInput
+                                                        value={formData.entry_signal}
+                                                        onChange={(val) => setFormData(prev => ({ ...prev, entry_signal: val }))}
+                                                        suggestions={entrySignalSuggestions}
+                                                        placeholder="e.g. FVG Tap..."
+                                                        defaultColor="amber"
+                                                        category="entry_signal"
+                                                        className="w-full"
+                                                    />
+                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
+                                                        <span className="material-symbols-outlined text-sm">sensors</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-8">
                                             <div>
-                                                <label className={labelClass}>SL Pips</label>
-                                                <input type="number" name="sl_pips" step="0.1" placeholder="0.0" value={formData.sl_pips} onChange={handleChange} className={inputClass} />
+                                                <label className={labelClass}>SL Vector (Pips)</label>
+                                                <div className="relative group/input">
+                                                    <input type="number" name="sl_pips" step="0.1" placeholder="0.0" value={formData.sl_pips} onChange={handleChange} className={inputClass} />
+                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest pointer-events-none group-focus-within/input:text-slate-500 transition-colors">Distance</div>
+                                                </div>
                                             </div>
                                             <div>
-                                                <label className={labelClass}>% Risk</label>
-                                                <input type="number" name="risk_percent" step="0.1" placeholder="0.0" value={formData.risk_percent} onChange={handleChange} className={inputClass} />
+                                                <label className={labelClass}>Operational Risk (%)</label>
+                                                <div className="relative group/input">
+                                                    <input type="number" name="risk_percent" step="0.1" placeholder="0.0" value={formData.risk_percent} onChange={handleChange} className={inputClass} />
+                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest pointer-events-none group-focus-within/input:text-slate-500 transition-colors">Exposure</div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Confluences — Multi Pill */}
                                         <div>
-                                            <label className={labelClass}>Confluences</label>
-                                            <PillInput
-                                                value={formData.confluences}
-                                                onChange={(val) => setFormData(prev => ({ ...prev, confluences: val }))}
-                                                suggestions={confluenceSuggestions}
-                                                placeholder="Add confluences..."
-                                                defaultColor="primary"
-                                                category="confluences"
-                                                allowMultiple={true}
-                                            />
+                                            <label className={labelClass}>Market Session</label>
+                                            <div className="flex gap-2.5 bg-white/[0.03] p-1.5 rounded-2xl border border-white/10 h-[62px]">
+                                                {['London', 'New York', 'Asia'].map(session => (
+                                                    <button
+                                                        key={session}
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, trade_session: session }))}
+                                                        className={`flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2 ${formData.trade_session === session
+                                                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">
+                                                            {session === 'London' ? 'schedule' : session === 'New York' ? 'monitoring' : 'nights_stay'}
+                                                        </span>
+                                                        {session}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className={labelClass}>Strategic Confluences</label>
+                                            <div className="relative group/pill flex items-center">
+                                                <PillInput
+                                                    value={formData.confluences}
+                                                    onChange={(val) => setFormData(prev => ({ ...prev, confluences: val }))}
+                                                    suggestions={confluenceSuggestions}
+                                                    placeholder="Add confluences..."
+                                                    defaultColor="primary"
+                                                    category="confluences"
+                                                    allowMultiple={true}
+                                                    className="w-full"
+                                                />
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/pill:opacity-50 transition-opacity">
+                                                    <span className="material-symbols-outlined text-sm">hub</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
 
                                 {activeTab === 'psychology' && (
                                     <div className="space-y-6">
-                                        <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] overflow-hidden p-8 space-y-8">
+                                            {/* Pre-Trade Sentiment */}
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-[18px] text-indigo-400">psychology</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pre-Trade Sentiment</span>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-3">
+                                                    {PRE_TRADE_EMOTIONS.map(emo => (
+                                                        <button
+                                                            key={emo.id}
+                                                            type="button"
+                                                            onClick={() => setFormData(prev => ({ ...prev, sentiment_pre: emo.id }))}
+                                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 ${formData.sentiment_pre === emo.id
+                                                                ? 'bg-indigo-500/20 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
+                                                                : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                                }`}
+                                                        >
+                                                            <span className="text-2xl mb-2">{emo.icon}</span>
+                                                            <span className={`text-[9px] font-black uppercase tracking-wider ${formData.sentiment_pre === emo.id ? 'text-indigo-400' : 'text-slate-500'}`}>{emo.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Post-Trade Sentiment */}
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-[18px] text-emerald-400">mood</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Post-Trade Sentiment</span>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-3">
+                                                    {POST_TRADE_EMOTIONS.map(emo => (
+                                                        <button
+                                                            key={emo.id}
+                                                            type="button"
+                                                            onClick={() => setFormData(prev => ({ ...prev, sentiment_post: emo.id }))}
+                                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 ${formData.sentiment_post === emo.id
+                                                                ? 'bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                                                                : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                                }`}
+                                                        >
+                                                            <span className="text-2xl mb-2">{emo.icon}</span>
+                                                            <span className={`text-[9px] font-black uppercase tracking-wider ${formData.sentiment_post === emo.id ? 'text-emerald-400' : 'text-slate-500'}`}>{emo.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="h-px bg-white/5 my-4" />
+
                                             {/* Psychology Block */}
-                                            <div className="border-b border-slate-100 dark:border-slate-800">
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-sky-400">psychology</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">State of Mind</span>
+                                            <div className="group/text">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-[18px] text-sky-400 group-focus-within/text:drop-shadow-glow">description</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Psychological Narrative</span>
                                                 </div>
                                                 <textarea
                                                     name="psychology"
-                                                    rows="5"
-                                                    placeholder="How were you feeling before and during the trade? Were you calm, anxious, overconfident?"
+                                                    rows="4"
+                                                    placeholder="Document cognitive state during execution..."
                                                     value={formData.psychology}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-white/5 rounded-2xl border border-white/5 p-4 focus:outline-none focus:border-primary/30 text-white text-sm leading-relaxed resize-none placeholder-slate-600 transition-all"
                                                 ></textarea>
                                             </div>
 
                                             {/* Mistakes Block */}
-                                            <div>
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-rose-400">error</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Mistakes</span>
+                                            <div className="group/text">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-[18px] text-rose-400 group-focus-within/text:drop-shadow-glow">error</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Operational Mistakes</span>
                                                 </div>
                                                 <textarea
                                                     name="mistakes"
-                                                    rows="4"
-                                                    placeholder="What could you have done better? Any rule breaks?"
+                                                    rows="3"
+                                                    placeholder="Any protocol deviations or rule violations?"
                                                     value={formData.mistakes}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-white/5 rounded-2xl border border-white/5 p-4 focus:outline-none focus:border-rose-500/30 text-white text-sm leading-relaxed resize-none placeholder-slate-600 transition-all"
                                                 ></textarea>
                                             </div>
                                         </div>
@@ -1076,70 +1267,155 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                 )}
 
                                 {activeTab === 'journal' && (
-                                    <div className="space-y-6">
-                                        {/* Notion-style journal blocks */}
-                                        <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                                    <div className="space-y-8">
+                                        {/* Operational Scorecard */}
+                                        <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-primary">analytics</span>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-0.5">Tactical Execution Rating</h3>
+                                                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic leading-none">Objective Performance Scorecard</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button
+                                                            key={star}
+                                                            type="button"
+                                                            onClick={() => setFormData(prev => ({ ...prev, model: String(star) }))}
+                                                            className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all duration-300 transform active:scale-90 ${String(formData.model) === String(star)
+                                                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                                                                : 'bg-white/5 border-white/5 text-slate-600 hover:text-slate-400'}`}
+                                                        >
+                                                            <span className={`material-symbols-outlined text-xl ${String(formData.model) === String(star) ? 'fill-1' : ''}`}>
+                                                                {String(formData.model) >= String(star) ? 'star' : 'star_border'}
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
+                                                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Setup Quality</div>
+                                                    <div className="text-sm font-black text-white italic tracking-tighter uppercase whitespace-nowrap">
+                                                        {String(formData.model) === '5' ? 'A+ PERFECT' : String(formData.model) === '4' ? 'B+ SOLID' : String(formData.model) === '3' ? 'C NEUTRAL' : String(formData.model) === '2' ? 'D SUBPAR' : String(formData.model) === '1' ? 'F TRASH' : 'UNRATED'}
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
+                                                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Discipline Protocol</div>
+                                                    <div className={`text-sm font-black italic tracking-tighter uppercase ${formData.mistakes ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {formData.mistakes ? 'VIOLATED' : 'MAINTAINED'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] overflow-hidden">
                                             {/* Bias Block */}
-                                            <div className="border-b border-slate-100 dark:border-slate-800">
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-emerald-400">trending_up</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Bias</span>
+                                            <div className="border-b border-white/5 group/text">
+                                                <div className="flex items-center justify-between px-8 pt-6 pb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[18px] text-emerald-400 group-focus-within/text:drop-shadow-glow">trending_up</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Operational Bias Analysis</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        {['Liquidity Sweep', 'FVG Gap', 'MSB'].map(tag => (
+                                                            <button
+                                                                key={tag}
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, comment_bias: (prev.comment_bias ? prev.comment_bias + ' ' : '') + tag + '.' }))}
+                                                                className="text-[8px] font-black text-slate-600 hover:text-emerald-400 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/5 hover:border-emerald-500/30 transition-all"
+                                                            >
+                                                                + {tag}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                                 <textarea
                                                     name="comment_bias"
                                                     rows="3"
-                                                    placeholder="Was your bias correct? What confirmed or invalidated it?"
+                                                    placeholder="Validate bias alignment with price action. Why did this trade make sense?"
                                                     value={formData.comment_bias}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-transparent px-8 pb-6 focus:outline-none text-white text-sm leading-relaxed resize-none placeholder-slate-700 font-medium transition-all focus:placeholder-transparent"
                                                 ></textarea>
                                             </div>
 
                                             {/* Execution Block */}
-                                            <div className="border-b border-slate-100 dark:border-slate-800">
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-primary">bolt</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Execution</span>
+                                            <div className="border-b border-white/5 group/text">
+                                                <div className="flex items-center justify-between px-8 pt-6 pb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[18px] text-primary group-focus-within/text:drop-shadow-glow">bolt</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tactical Execution Review</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        {['Clean Entry', 'Late Entry', 'Slipped'].map(tag => (
+                                                            <button
+                                                                key={tag}
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, comment_execution: (prev.comment_execution ? prev.comment_execution + ' ' : '') + tag + '.' }))}
+                                                                className="text-[8px] font-black text-slate-600 hover:text-primary uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/5 hover:border-primary-light/30 transition-all"
+                                                            >
+                                                                + {tag}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                                 <textarea
                                                     name="comment_execution"
                                                     rows="3"
-                                                    placeholder="How was the entry timing? Did you follow your plan?"
+                                                    placeholder="Evaluate entry precision and protocol adherence. Was the entry clean?"
                                                     value={formData.comment_execution}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-transparent px-8 pb-6 focus:outline-none text-white text-sm leading-relaxed resize-none placeholder-slate-700 font-medium transition-all focus:placeholder-transparent"
                                                 ></textarea>
                                             </div>
 
                                             {/* Problems Block */}
-                                            <div className="border-b border-slate-100 dark:border-slate-800">
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-amber-400">warning</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Problems</span>
+                                            <div className="border-b border-white/5 group/text">
+                                                <div className="flex items-center justify-between px-8 pt-6 pb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[18px] text-amber-400 group-focus-within/text:drop-shadow-glow">warning</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Operational Friction</span>
+                                                    </div>
                                                 </div>
                                                 <textarea
                                                     name="comment_problems"
                                                     rows="3"
-                                                    placeholder="Any issues with execution, psychology, or market conditions?"
+                                                    placeholder="Identify issues with execution or market conditions. What went wrong?"
                                                     value={formData.comment_problems}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-transparent px-8 pb-6 focus:outline-none text-white text-sm leading-relaxed resize-none placeholder-slate-700 font-medium transition-all focus:placeholder-transparent"
                                                 ></textarea>
                                             </div>
 
                                             {/* Fazit Block */}
-                                            <div>
-                                                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                                                    <span className="material-symbols-outlined text-[16px] text-violet-400">summarize</span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Fazit</span>
+                                            <div className="group/text">
+                                                <div className="flex items-center justify-between px-8 pt-6 pb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[18px] text-violet-400 group-focus-within/text:drop-shadow-glow">summarize</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Mission Debrief (Fazit)</span>
+                                                    </div>
                                                 </div>
                                                 <textarea
                                                     name="comment_fazit"
                                                     rows="4"
-                                                    placeholder="Final takeaway. What did you learn from this trade?"
+                                                    placeholder="Synthesize lessons and tactical takeaways for future operations..."
                                                     value={formData.comment_fazit}
                                                     onChange={handleChange}
-                                                    className="w-full bg-transparent px-5 pb-4 focus:outline-none dark:text-white text-sm leading-relaxed resize-none placeholder-slate-400/60"
+                                                    className="w-full bg-transparent px-8 pb-10 focus:outline-none text-white text-sm leading-relaxed resize-none placeholder-slate-700 font-medium transition-all focus:placeholder-transparent"
                                                 ></textarea>
                                             </div>
                                         </div>
@@ -1150,13 +1426,18 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 gap-8">
                                             {/* Category 1: Execution */}
-                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-primary text-[20px]">bolt</span>
-                                                        <h3 className="text-sm font-bold dark:text-white uppercase tracking-wider">Execution (1m - 5m)</h3>
+                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
+                                                    <span className="material-symbols-outlined text-[120px]">target</span>
+                                                </div>
+                                                <div className="flex items-center justify-between mb-6 relative z-10">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
+                                                            <span className="material-symbols-outlined text-primary text-[20px]">bolt</span>
+                                                        </div>
+                                                        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Execution Matrix (LTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase">Entry Precision</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Entry Precision</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_execution}
@@ -1165,13 +1446,18 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 2: Condition */}
-                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-emerald-400 text-[20px]">analytics</span>
-                                                        <h3 className="text-sm font-bold dark:text-white uppercase tracking-wider">Condition (5m, 15m)</h3>
+                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
+                                                    <span className="material-symbols-outlined text-[120px]">analytics</span>
+                                                </div>
+                                                <div className="flex items-center justify-between mb-6 relative z-10">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                                                            <span className="material-symbols-outlined text-emerald-400 text-[20px]">analytics</span>
+                                                        </div>
+                                                        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Structural Context (MTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase">Trend & Levels</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Trend & Levels</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_condition}
@@ -1180,13 +1466,18 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 3: Narrative */}
-                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-amber-400 text-[20px]">auto_stories</span>
-                                                        <h3 className="text-sm font-bold dark:text-white uppercase tracking-wider">Narrative (1h, 4h, Daily)</h3>
+                                            <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 group/attach overflow-hidden relative">
+                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
+                                                    <span className="material-symbols-outlined text-[120px]">auto_stories</span>
+                                                </div>
+                                                <div className="flex items-center justify-between mb-6 relative z-10">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                                                            <span className="material-symbols-outlined text-amber-400 text-[20px]">auto_stories</span>
+                                                        </div>
+                                                        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Higher Narrative (HTF)</h3>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase">Higher Timeframe Bias</span>
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Bias Framework</span>
                                                 </div>
                                                 <ImageSection
                                                     value={formData.images_narrative}
@@ -1199,19 +1490,29 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                             </form>
                         </div>
 
-                        {/* Footer */}
+                        {/* Footer - Final Deployment */}
                         {!showCelebration && (
-                            <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-white/[0.02] rounded-b-2xl">
+                            <div className="px-10 py-8 border-t border-white/5 bg-white/[0.01] rounded-b-[3rem]">
                                 <button
                                     type="submit"
                                     form="tradeForm"
                                     disabled={!isTradeReady}
-                                    className={`w-full font-bold py-3.5 rounded-xl transition-all transform ${isTradeReady
-                                        ? 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-[0.99]'
-                                        : 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed'
+                                    className={`w-full font-black py-5 rounded-2xl transition-all duration-500 transform relative overflow-hidden group/submit ${isTradeReady
+                                        ? 'bg-primary text-white hover:bg-primary-light shadow-[0_0_30px_rgba(99,102,241,0.3)] active:scale-[0.99] cursor-pointer'
+                                        : 'bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed grayscale'
                                         }`}
                                 >
-                                    {tradeToEdit ? 'Update Trade' : 'Save Trade'}
+                                    <div className="flex items-center justify-center gap-3 relative z-10">
+                                        <span className="material-symbols-outlined text-[20px]">
+                                            {tradeToEdit ? 'sync' : 'rocket_launch'}
+                                        </span>
+                                        <span className="uppercase tracking-[0.25em] text-xs">
+                                            {tradeToEdit ? 'Update Operational Data' : 'Commit Execution'}
+                                        </span>
+                                    </div>
+                                    {isTradeReady && (
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/submit:translate-x-full transition-transform duration-1000" />
+                                    )}
                                 </button>
                             </div>
                         )}

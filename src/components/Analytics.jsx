@@ -1,16 +1,15 @@
 import React, { useMemo, useEffect } from 'react';
+import ViewHeader from './ViewHeader';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Cell, PieChart, Pie, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { useData } from '../context/TradeContext';
 
-
 const Analytics = () => {
-    const { filteredTrades: trades, accounts, analyticsFilters } = useData();
+    const { filteredTrades: trades, accounts, analyticsFilters, setAnalyticsFilters, formatCurrency } = useData();
 
     useEffect(() => {
-        // Debug logging to help identify why it might be blank
         console.log('Analytics Component Mounted');
         console.log('Trades available:', trades?.length);
     }, [trades]);
@@ -22,45 +21,35 @@ const Analytics = () => {
         try {
             if (!trades || trades.length === 0) return null;
 
-            // Filter trades based on Analytics-specific filters (Account & Type)
             let processedTrades = trades;
-
             if (analyticsFilters?.accountId && analyticsFilters.accountId !== 'all') {
                 processedTrades = processedTrades.filter(t => String(t.account_id) === String(analyticsFilters.accountId));
             }
-
             if (analyticsFilters?.type && analyticsFilters.type !== 'all') {
                 processedTrades = processedTrades.filter(t => {
                     const acc = accounts.find(a => String(a.id) === String(t.account_id));
                     return acc && acc.type === analyticsFilters.type;
                 });
             }
+            if (analyticsFilters?.symbol && analyticsFilters.symbol !== 'all') {
+                processedTrades = processedTrades.filter(t => (t.symbol || '').toUpperCase() === analyticsFilters.symbol.toUpperCase());
+            }
 
-            // Filter for valid closed trades
             const closedTrades = processedTrades.filter(t => (t.status === 'CLOSED' || !t.status) && typeof t.pnl === 'number');
-
             if (closedTrades.length === 0) return null;
 
-            // --- Basic KPIs ---
             const totalTrades = closedTrades.length;
             const winningTrades = closedTrades.filter(t => t.pnl > 0);
             const losingTrades = closedTrades.filter(t => t.pnl <= 0);
             const winRate = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
-
             const grossProfit = winningTrades.reduce((acc, t) => acc + t.pnl, 0);
             const grossLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.pnl, 0));
             const netPnL = grossProfit - grossLoss;
-
-            // Safe division for profit factor
             const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? 100 : 0) : grossProfit / grossLoss;
-
             const avgWin = winningTrades.length > 0 ? grossProfit / winningTrades.length : 0;
             const avgLoss = losingTrades.length > 0 ? grossLoss / losingTrades.length : 0;
-
-            // Safe division for RR
             const riskReward = avgLoss === 0 ? (avgWin > 0 ? 10 : 0) : avgWin / avgLoss;
 
-            // --- Equity Curve (Cumulative PnL) ---
             let runningPnL = 0;
             const sortedTrades = closedTrades.sort((a, b) => {
                 const d1 = new Date(a.close_date || a.date);
@@ -70,156 +59,109 @@ const Analytics = () => {
 
             const equityCurve = sortedTrades.map((t, i) => {
                 runningPnL += t.pnl;
-                const dateObj = new Date(t.close_date || t.date);
+                const d = new Date(t.close_date || t.date);
                 return {
                     id: i + 1,
-                    date: !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString() : 'N/A',
+                    date: !isNaN(d.getTime()) ? d.toLocaleDateString() : 'N/A',
                     pnl: runningPnL,
                     rawPnl: t.pnl
                 };
             });
 
-            // --- Drawdown Calculation ---
             let maxPeak = -Infinity;
-            let currentDrawdown = 0;
-            let runningBalanceForDD = 0; // Assuming 0 start for relative drawdown
-
+            let runningBalanceForDD = 0;
             const drawdownData = sortedTrades.map((t, i) => {
                 runningBalanceForDD += t.pnl;
                 if (runningBalanceForDD > maxPeak) maxPeak = runningBalanceForDD;
-
-                // Calculate absolute drawdown from peak
-                const absDD = runningBalanceForDD - maxPeak;
-
                 return {
                     id: i + 1,
                     date: equityCurve[i].date,
-                    drawdown: absDD // Viz negative value
+                    drawdown: runningBalanceForDD - maxPeak
                 };
             });
 
-
-
-
-            // --- Bias Analysis ---
             const biasStats = {};
             closedTrades.forEach(t => {
-                const bias = (t.bias || 'Neutral').charAt(0).toUpperCase() + (t.bias || 'Neutral').slice(1).toLowerCase();
-                if (!biasStats[bias]) biasStats[bias] = { name: bias, pnl: 0, wins: 0, total: 0 };
-                biasStats[bias].pnl += t.pnl;
-                if (t.pnl > 0) biasStats[bias].wins++;
-                biasStats[bias].total++;
+                const b = (t.bias || 'Neutral').charAt(0).toUpperCase() + (t.bias || 'Neutral').slice(1).toLowerCase();
+                if (!biasStats[b]) biasStats[b] = { name: b, pnl: 0, wins: 0, total: 0 };
+                biasStats[b].pnl += t.pnl;
+                if (t.pnl > 0) biasStats[b].wins++;
+                biasStats[b].total++;
             });
-            const biasPerformance = Object.values(biasStats).map(b => ({
-                ...b,
-                winRate: (b.wins / b.total) * 100
-            }));
+            const biasPerformance = Object.values(biasStats).map(b => ({ ...b, winRate: (b.wins / b.total) * 100 }));
 
-            // --- Symbol Distribution ---
             const symbolCounts = {};
             closedTrades.forEach(t => {
                 const sym = (t.symbol || 'Unknown').toUpperCase();
                 symbolCounts[sym] = (symbolCounts[sym] || 0) + 1;
             });
-            const symbolDistribution = Object.entries(symbolCounts)
-                .map(([name, value]) => ({ name, value }))
-                .sort((a, b) => b.value - a.value)
-                .slice(0, 5);
+            const symbolDistribution = Object.entries(symbolCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
 
-            // --- Daily Performance (Calendar Heatmap Prep) ---
-            const dailyPnL = {};
+            const dailyBarData = {};
             sortedTrades.forEach(t => {
                 const d = new Date(t.date);
-                if (isNaN(d.getTime())) return;
-                const dateKey = d.toISOString().split('T')[0];
-                if (!dailyPnL[dateKey]) dailyPnL[dateKey] = { date: dateKey, pnl: 0, count: 0 };
-                dailyPnL[dateKey].pnl += t.pnl;
-                dailyPnL[dateKey].count++;
-            });
-
-            // Generate full year grid (simplified for now to last 365 days or range)
-            const calendarData = Object.values(dailyPnL).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-
-            // --- Daily Performance (Bar Chart) ---
-            const dailyBarData = {}; // Aggregate by day of week
-            sortedTrades.forEach(t => {
-                const d = new Date(t.date);
-                if (isNaN(d.getTime())) return;
-                const day = d.toLocaleDateString('en-US', { weekday: 'short' });
-                if (!dailyBarData[day]) dailyBarData[day] = { day, pnl: 0, wins: 0, total: 0 };
-                dailyBarData[day].pnl += t.pnl;
-                if (t.pnl > 0) dailyBarData[day].wins++;
-                dailyBarData[day].total++;
+                if (!isNaN(d.getTime())) {
+                    const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+                    if (!dailyBarData[day]) dailyBarData[day] = { day, pnl: 0, wins: 0, total: 0 };
+                    dailyBarData[day].pnl += t.pnl;
+                    if (t.pnl > 0) dailyBarData[day].wins++;
+                    dailyBarData[day].total++;
+                }
             });
             const dailyPerformance = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(day => ({
                 day,
                 ...(dailyBarData[day] || { pnl: 0, wins: 0, total: 0 }),
-                winRate: dailyBarData[day] ? (dailyBarData[day].wins / dailyBarData[day].total) * 100 : 0
+                trades: dailyBarData[day] ? dailyBarData[day].total : 0
             }));
 
-            // --- Session Performance (Radar) ---
             const sessionStats = {};
             closedTrades.forEach(t => {
-                const session = t.session || t.trade_session || 'Unknown';
-                if (!sessionStats[session]) sessionStats[session] = { name: session, pnl: 0, wins: 0, total: 0 };
-                sessionStats[session].pnl += t.pnl;
-                if (t.pnl > 0) sessionStats[session].wins++;
-                sessionStats[session].total++;
+                const s = t.session || t.trade_session || 'Unknown';
+                if (!sessionStats[s]) sessionStats[s] = { name: s, pnl: 0, wins: 0, total: 0 };
+                sessionStats[s].pnl += t.pnl;
+                if (t.pnl > 0) sessionStats[s].wins++;
+                sessionStats[s].total++;
             });
-            const sessionPerformance = Object.values(sessionStats).map(s => ({
-                ...s,
-                winRate: (s.wins / s.total) * 100
-            }));
+            const sessionPerformance = Object.values(sessionStats).map(s => ({ ...s, winRate: (s.wins / s.total) * 100 }));
 
-            // --- Setup/Model Performance ---
             const modelStats = {};
             closedTrades.forEach(t => {
-                const model = t.model || 'No Model';
-                if (!modelStats[model]) modelStats[model] = { name: model, pnl: 0, wins: 0, total: 0 };
-                modelStats[model].pnl += t.pnl;
-                if (t.pnl > 0) modelStats[model].wins++;
-                modelStats[model].total++;
+                const m = t.model || 'No Model';
+                if (!modelStats[m]) modelStats[m] = { name: m, pnl: 0, wins: 0, total: 0 };
+                modelStats[m].pnl += t.pnl;
+                if (t.pnl > 0) modelStats[m].wins++;
+                modelStats[m].total++;
             });
-            const modelPerformance = Object.values(modelStats)
-                .sort((a, b) => b.pnl - a.pnl)
-                .slice(0, 5);
+            const modelPerformance = Object.values(modelStats).sort((a, b) => b.pnl - a.pnl).slice(0, 5);
 
-            // --- Insights calculation ---
-            let bestDay = { day: 'N/A', pnl: 0 };
-            let worstDay = { day: 'N/A', pnl: 0 };
-            if (dailyPerformance.some(d => d.total > 0)) {
-                bestDay = dailyPerformance.reduce((a, b) => a.pnl > b.pnl ? a : b);
-                worstDay = dailyPerformance.reduce((a, b) => a.pnl < b.pnl ? a : b);
-            }
+            const sentimentStats = {};
+            const emotionMap = {
+                disciplined: '🧘', focused: '🎯', nervous: '😨', aggressive: '😤',
+                gratified: '😊', fomo: '😤', revenge: '🎢', regret: '😔'
+            };
+            closedTrades.forEach(t => {
+                const sentiment = t.sentiment_pre || t.sentiment_post || 'Neutral';
+                if (!sentimentStats[sentiment]) {
+                    sentimentStats[sentiment] = { name: sentiment, icon: emotionMap[sentiment] || '😶', pnl: 0, wins: 0, total: 0 };
+                }
+                sentimentStats[sentiment].pnl += t.pnl;
+                if (t.pnl > 0) sentimentStats[sentiment].wins++;
+                sentimentStats[sentiment].total++;
+            });
+            const moodPerformance = Object.values(sentimentStats).map(s => ({
+                ...s,
+                label: s.name.charAt(0).toUpperCase() + s.name.slice(1),
+                winRate: (s.total > 0) ? (s.wins / s.total) * 100 : 0
+            })).sort((a, b) => b.pnl - a.pnl);
 
             const bestModel = modelPerformance.length > 0 ? modelPerformance[0] : null;
-
             const consistencyScore = Math.min(100, Math.max(0, (winRate * 0.5) + (Math.min(profitFactor, 3) * 16)));
 
             return {
-                totalTrades,
-                winRate,
-                netPnL,
-                profitFactor,
-                avgWin,
-                avgLoss,
-                riskReward,
-                equityCurve,
-                drawdownData,
-
-                calendarData,
-                dailyPerformance,
-                sessionPerformance: sessionPerformance.length > 0 ? sessionPerformance : [{ name: 'No Data', winRate: 0 }],
-                biasPerformance,
-                symbolDistribution,
-                modelPerformance,
-                insights: {
-                    bestDay: bestDay.day,
-                    worstDay: worstDay.day,
-                    bestModel: bestModel ? bestModel.name : 'N/A',
-                    consistencyScore: Math.round(consistencyScore) || 0
-                }
+                totalTrades, winRate, netPnL, profitFactor, avgWin, avgLoss, riskReward, equityCurve, drawdownData,
+                dailyPerformance, sessionPerformance: sessionPerformance.length ? sessionPerformance : [{ name: 'No Data', winRate: 0 }],
+                biasPerformance, symbolDistribution, modelPerformance, moodPerformance,
+                insights: { bestModel: bestModel ? bestModel.name : 'N/A', consistencyScore: Math.round(consistencyScore) || 0 }
             };
         } catch (err) {
             console.error("Error calculating analytics:", err);
@@ -229,8 +171,6 @@ const Analytics = () => {
 
     if (!analytics) {
         const totalLoaded = trades ? trades.length : 0;
-        const closedCount = trades ? trades.filter(t => (t.status === 'CLOSED' || !t.status) && typeof t.pnl === 'number').length : 0;
-
         return (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-700">
                 <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mb-6 border border-primary/10">
@@ -240,102 +180,69 @@ const Analytics = () => {
                     {totalLoaded === 0 ? "No Trades Yet" : "No Analytic Data"}
                 </h2>
                 <p className="text-slate-500 max-w-md mb-6">
-                    {totalLoaded === 0
-                        ? "Start journaling your trades to unlock powerful insights about your performance."
-                        : `Found ${totalLoaded} trades, but couldn't generate analytics. Ensure trades have valid P&L data.`}
+                    {totalLoaded === 0 ? "Start journaling your trades." : `Found ${totalLoaded} trades, but couldn't generate analytics.`}
                 </p>
-
-
             </div>
         );
     }
 
     return (
         <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-primary">Analytics</span>
-                        <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                            Beta
-                        </span>
-                    </h1>
-                    <p className="text-slate-400 mt-1 font-medium">Deep dive into your trading performance metrics</p>
-                </div>
-
-                {/* Consistency Score Badge */}
-                <div className="flex items-center gap-4 bg-[#0f111a] border border-white/5 p-4 rounded-2xl shadow-xl">
+            <ViewHeader title="Analytics" accent="Center" subtitle="Deep level fleet intelligence & performance metrics" icon="analytics">
+                <div className="flex items-center gap-6 bg-[#0F172A]/50 border border-white/5 p-5 rounded-[2rem] backdrop-blur-xl shadow-2xl">
                     <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Consistency Score</span>
-                        <span className={`text-2xl font-black ${analytics.insights.consistencyScore >= 70 ? 'text-emerald-400' : analytics.insights.consistencyScore >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>
-                            {analytics.insights.consistencyScore}
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-0.5">Consistency Score</span>
+                        <span className={`text-3xl font-black tracking-tighter italic ${analytics.insights.consistencyScore >= 70 ? 'text-emerald-400' : analytics.insights.consistencyScore >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>
+                            {analytics.insights.consistencyScore}%
                         </span>
                     </div>
-                    <div className="w-12 h-12 relative flex items-center justify-center">
+                    <div className="w-14 h-14 relative flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-800" />
-                            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent"
-                                className={`${analytics.insights.consistencyScore >= 70 ? 'text-emerald-500' : analytics.insights.consistencyScore >= 40 ? 'text-amber-500' : 'text-rose-500'} transition-all duration-1000 ease-out`}
-                                strokeDasharray={125.6}
-                                strokeDashoffset={125.6 - (125.6 * analytics.insights.consistencyScore) / 100}
-                                strokeLinecap="round"
-                            />
+                            <circle cx="28" cy="28" r="23" stroke="currentColor" strokeWidth="5" fill="transparent" className="text-white/5" />
+                            <circle cx="28" cy="28" r="23" stroke="currentColor" strokeWidth="5" fill="transparent"
+                                className={`${analytics.insights.consistencyScore >= 70 ? 'text-emerald-500' : analytics.insights.consistencyScore >= 40 ? 'text-amber-500' : 'text-rose-500'} transition-all duration-1000`}
+                                strokeDasharray={144.5} strokeDashoffset={144.5 - (144.5 * analytics.insights.consistencyScore) / 100} strokeLinecap="round" />
                         </svg>
-                        <span className="material-symbols-outlined absolute text-sm text-slate-500">verified</span>
+                        <span className="material-symbols-outlined absolute text-[20px] text-primary/40">radar</span>
                     </div>
                 </div>
-            </div>
+            </ViewHeader>
 
-            {/* KPI Grid */}
+            {analyticsFilters?.symbol && analyticsFilters.symbol !== 'all' && (
+                <div className="bg-primary/10 border border-primary/20 rounded-2xl px-6 py-3 flex items-center justify-between animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_rgba(124,93,250,0.8)]" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Tactical Focus Mode Engaged: </span>
+                        <span className="text-sm font-black text-white italic tracking-tighter uppercase">{analyticsFilters.symbol}</span>
+                    </div>
+                    <button
+                        onClick={() => setAnalyticsFilters(prev => ({ ...prev, symbol: 'all' }))}
+                        className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 hover:border-white/10 transition-all active:scale-95"
+                    >
+                        Reset Sensors
+                    </button>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard
-                    title="Net P&L"
-                    value={`$${analytics.netPnL.toLocaleString()}`}
-                    subValue={`${analytics.totalTrades} Trades`}
-                    color={analytics.netPnL >= 0 ? "emerald" : "rose"}
-                    icon="payments"
-                />
-                <KPICard
-                    title="Win Rate"
-                    value={`${analytics.winRate.toFixed(1)}%`}
-                    subValue={`PF: ${analytics.profitFactor.toFixed(2)}`}
-                    color="cyan"
-                    icon="donut_large"
-                />
-                <KPICard
-                    title="Avg R:R"
-                    value={analytics.riskReward.toFixed(2)}
-                    subValue={`Avg Win: $${Math.round(analytics.avgWin)}`}
-                    color="violet"
-                    icon="balance"
-                />
-                <KPICard
-                    title="Best Setup"
-                    value={analytics.insights.bestModel}
-                    subValue="Most Profitable"
-                    color="amber"
-                    icon="stars"
-                />
+                <KPICard title="Net P&L" value={formatCurrency(analytics.netPnL)} subValue={`${analytics.totalTrades} Trades`} color={analytics.netPnL >= 0 ? "emerald" : "rose"} icon="payments" />
+                <KPICard title="Win Rate" value={`${analytics.winRate.toFixed(1)}%`} subValue={`PF: ${analytics.profitFactor.toFixed(2)}`} color="cyan" icon="donut_large" />
+                <KPICard title="Avg R:R" value={analytics.riskReward.toFixed(2)} subValue={`Avg Win: ${formatCurrency(analytics.avgWin)}`} color="violet" icon="balance" />
+                <KPICard title="Best Setup" value={analytics.insights.bestModel} subValue="Most Profitable" color="amber" icon="stars" />
             </div>
 
-            {/* Main Chart Section - Equity Curve & Drawdown */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     {/* Equity Curve */}
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary text-xl">show_chart</span>
-                                    Equity Curve
-                                </h3>
-                                <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Cumulative Performance</p>
-                            </div>
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-xl">show_chart</span> Equity Curve
+                            </h3>
+                            <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Cumulative Performance</p>
                         </div>
-
-                        <div className="h-[300px] w-full min-w-0">
+                        <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={analytics.equityCurve}>
                                     <defs>
@@ -346,37 +253,22 @@ const Analytics = () => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                                     <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                                        labelStyle={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}
-                                        itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                        formatter={(val) => [`$${val.toLocaleString()}`, 'Net Equity']}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="pnl"
-                                        stroke="#8b5cf6"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorPnL)"
-                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#fff' }}
-                                    />
+                                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val)} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px' }} formatter={(val) => [formatCurrency(val), 'Net Equity']} />
+                                    <Area type="monotone" dataKey="pnl" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorPnL)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Drawdown Visualizer (New Placement) */}
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-bl from-rose-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    {/* Drawdown Visualizer */}
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-gradient-to-bl from-rose-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-rose-400 text-xl">trending_down</span>
-                            Drawdown from Peak
+                            <span className="material-symbols-outlined text-rose-400 text-xl">trending_down</span> Drawdown from Peak
                         </h3>
                         <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Capital Protection</p>
-
-                        <div className="h-[200px] w-full min-w-0">
+                        <div className="h-[180px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={analytics.drawdownData}>
                                     <defs>
@@ -387,48 +279,118 @@ const Analytics = () => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                                     <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#f43f5e' }}
-                                        formatter={(val) => [`$${val.toFixed(2).toLocaleString()}`, 'Drawdown']}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="drawdown"
-                                        stroke="#f43f5e"
-                                        strokeWidth={2}
-                                        fill="url(#colorDD)"
-                                    />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }} itemStyle={{ color: '#f43f5e' }} formatter={(val) => [formatCurrency(val), 'Drawdown']} />
+                                    <Area type="monotone" dataKey="drawdown" stroke="#f43f5e" strokeWidth={2} fill="url(#colorDD)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
+
+                    {/* Mindset Matrix */}
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl hover:border-indigo-500/20 transition-all duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                        <div className="relative z-10">
+                            <div className="mb-6">
+                                <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-indigo-400 text-xl">psychology</span> Mindset Matrix
+                                </h3>
+                                <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Emotional Correlation by P&L</p>
+                            </div>
+                            <div className="h-[240px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={analytics.moodPerformance} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="label" type="category" axisLine={false} tickLine={false} width={80} tick={({ x, y, payload }) => {
+                                            const item = analytics.moodPerformance.find(m => m.label === payload.value);
+                                            return (
+                                                <g transform={`translate(${x},${y})`}>
+                                                    <text x={-10} y={0} dy={4} textAnchor="end" fill="white" fontSize={10} fontWeight="900" className="uppercase tracking-widest">
+                                                        {item?.icon} {payload.value}
+                                                    </text>
+                                                </g>
+                                            );
+                                        }} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-[#1e293b]/95 backdrop-blur-2xl border border-white/10 p-5 rounded-2xl shadow-2xl ring-1 ring-white/10">
+                                                        <div className="flex items-center justify-between gap-8 mb-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl shadow-inner">{data.icon}</div>
+                                                                <div>
+                                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">Mindset</div>
+                                                                    <div className="text-sm font-black text-white uppercase tracking-wider">{data.label}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">Execution</div>
+                                                                <div className="text-sm font-black text-white tracking-tighter">{data.total} <span className="text-[10px] text-slate-500">TRADES</span></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-between items-end">
+                                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Period P&L</span>
+                                                                <span className={`text-base font-black tracking-tight ${data.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pnl)}</span>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                                                    <span className="text-slate-500">Efficiency</span>
+                                                                    <span className="text-white">{data.winRate.toFixed(1)}%</span>
+                                                                </div>
+                                                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                                                    <div className={`h-full rounded-full transition-all duration-1000 ${data.winRate >= 50 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`} style={{ width: `${data.winRate}%` }} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }} />
+                                        <Bar dataKey="pnl" radius={[0, 4, 4, 0]} barSize={24}>
+                                            {analytics.moodPerformance.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)'} stroke={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} strokeWidth={1} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Column: Daily & Heatmap & R-mult */}
                 <div className="space-y-6">
-                    {/* Daily Performance Bar Chart */}
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-bl from-cyan-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    {/* Daily PnL */}
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-blue-500/20 transition-all duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-cyan-400 text-xl">calendar_view_week</span>
-                            Daily P&L
+                            <span className="material-symbols-outlined text-blue-400 text-xl">bar_chart</span> Daily P&L
                         </h3>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Performance by Day of Week</p>
-
-                        <div className="h-[200px] w-full min-w-0">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Performance by Day</p>
+                        <div className="h-[280px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={analytics.dailyPerformance}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                                    <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        cursor={{ fill: '#ffffff05' }}
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                    />
-                                    <Bar dataKey="pnl" radius={[4, 4, 4, 4]}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff08" />
+                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} tickFormatter={(value) => `$${value / 1000}k`} />
+                                    <Tooltip cursor={{ fill: '#ffffff05' }} content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-[#1e293b] border border-white/10 p-4 rounded-xl shadow-2xl">
+                                                    <p className="text-slate-400 text-[10px] uppercase tracking-widest font-bold mb-1">{data.day}</p>
+                                                    <p className={`text-lg font-black tracking-tight ${data.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pnl)}</p>
+                                                    <p className="text-[10px] text-slate-500 font-bold mt-1">{data.trades} trades executed</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }} />
+                                    <Bar dataKey="pnl" radius={[6, 6, 6, 6]}>
                                         {analytics.dailyPerformance.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} />
+                                            <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} opacity={0.6} stroke={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} strokeWidth={1} />
                                         ))}
                                     </Bar>
                                 </BarChart>
@@ -436,135 +398,104 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    {/* Bias Performance (Radar/Pie) */}
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    {/* Bias Efficiency */}
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-violet-400 text-xl">psychology</span>
-                            Bias Efficiency
+                            <span className="material-symbols-outlined text-violet-400 text-xl">psychology</span> Bias Efficiency
                         </h3>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Win Rate by Market Bias</p>
-
-                        <div className="h-[180px] w-full min-w-0">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Win Rate by Bias</p>
+                        <div className="h-[180px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={analytics.biasPerformance}>
                                     <PolarGrid stroke="#ffffff10" />
                                     <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                                    <Radar
-                                        name="Win Rate"
-                                        dataKey="winRate"
-                                        stroke="#8b5cf6"
-                                        strokeWidth={2}
-                                        fill="#8b5cf6"
-                                        fillOpacity={0.3}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#fff' }}
-                                        formatter={(value) => `${value.toFixed(1)}%`}
-                                    />
+                                    <Radar name="Win Rate" dataKey="winRate" stroke="#8b5cf6" strokeWidth={2} fill="#8b5cf6" fillOpacity={0.3} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }} formatter={(value) => `${value.toFixed(1)}%`} />
                                 </RadarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Symbol Distribution (Pie) */}
-                    <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 backdrop-blur-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    {/* Symbol Matrix */}
+                    <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-emerald-500/20 transition-all duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
                         <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-emerald-400 text-xl">pie_chart</span>
-                            Symbol Matrix
+                            <span className="material-symbols-outlined text-emerald-400 text-xl">pie_chart</span> Symbol Matrix
                         </h3>
                         <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Trade Volume by Asset</p>
-
-                        <div className="h-[180px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={analytics.symbolDistribution}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={45}
-                                        outerRadius={70}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {analytics.symbolDistribution.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e'][index % 5]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#fff' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <div className="h-[180px] flex items-center gap-4">
+                            <div className="w-[120px] h-[120px] shrink-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={analytics.symbolDistribution} innerRadius={40} outerRadius={60} paddingAngle={4} cornerRadius={4} dataKey="value" stroke="none">
+                                            {analytics.symbolDistribution.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#f43f5e'][index % 5]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="flex-1 space-y-1 overflow-y-auto max-h-full custom-scrollbar pr-2">
+                                {analytics.symbolDistribution.map((entry, index) => (
+                                    <div key={index} className="flex justify-between items-center text-[10px]">
+                                        <div className="flex items-center gap-1.5 text-slate-400">
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#f43f5e'][index % 5] }} />
+                                            {entry.name}
+                                        </div>
+                                        <span className="text-white font-black">{entry.value}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-
-
                 </div>
             </div>
 
-
-
-            {/* Bottom Row - Radar & Models (Original) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                {/* Session Radar Analysis */}
-                <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6 relative overflow-hidden">
-                    <h3 className="text-lg font-bold text-white mb-1">Session Dominance</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+                {/* Session Analysis */}
+                <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-primary/20 transition-all duration-500">
+                    <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-xl">radar</span> Session Dominance
+                    </h3>
                     <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Win Rate by Trading Session</p>
-
-                    <div className="h-[300px] flex items-center justify-center min-w-0">
+                    <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.sessionPerformance}>
+                            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={analytics.sessionPerformance}>
                                 <PolarGrid stroke="#ffffff10" />
-                                <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar
-                                    name="Win Rate"
-                                    dataKey="winRate"
-                                    stroke="#06b6d4"
-                                    strokeWidth={2}
-                                    fill="#06b6d4"
-                                    fillOpacity={0.3}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
-                                    itemStyle={{ color: '#fff' }}
-                                    formatter={(value) => `${value.toFixed(1)}%`}
-                                />
+                                <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800 }} />
+                                <Radar name="Win Rate" dataKey="winRate" stroke="#8b5cf6" strokeWidth={3} fill="#8b5cf6" fillOpacity={0.4} />
+                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px' }} formatter={(val) => [`${val.toFixed(1)}%`, 'Win Rate']} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Model Performance List */}
-                <div className="bg-[#0f111a]/50 border border-white/5 rounded-3xl p-6">
-                    <h3 className="text-lg font-bold text-white mb-1">Model Performance</h3>
-                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Top Strategies by P&L</p>
-
+                {/* Model Performance */}
+                <div className="bg-[#0F172A]/90 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-3xl relative overflow-hidden shadow-2xl group hover:border-amber-500/20 transition-all duration-500">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-amber-400 text-xl">model_training</span> Model Performance
+                            </h3>
+                            <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Top Strategies by P&L</p>
+                        </div>
+                    </div>
                     <div className="space-y-4">
                         {analytics.modelPerformance.map((model, i) => (
-                            <div key={model.name} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-slate-500 text-xs font-bold border border-white/10">
-                                        {i + 1}
-                                    </span>
+                            <div key={model.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all relative overflow-hidden">
+                                <div className="flex items-center gap-4">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-xl text-xs font-black border ${i === 0 ? 'bg-amber-500' : 'bg-slate-800'} text-white`}>{i + 1}</div>
                                     <div>
-                                        <p className="text-sm font-bold text-slate-200">{model.name}</p>
-                                        <p className="text-[10px] text-slate-500 font-medium">{model.wins}/{model.total} wins ({((model.wins / model.total) * 100).toFixed(0)}%)</p>
+                                        <p className="text-sm font-black text-white">{model.name}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{model.wins}/{model.total} Wins - {((model.wins / model.total) * 100).toFixed(0)}% WR</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-sm font-black ${model.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                        ${model.pnl.toLocaleString()}
-                                    </p>
-                                    <div className="w-20 h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden ml-auto">
-                                        <div
-                                            className={`h-full rounded-full ${model.pnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                            style={{ width: `${Math.min(100, Math.abs(model.pnl) / Math.max(...analytics.modelPerformance.map(m => Math.abs(m.pnl))) * 100)}%` }}
-                                        />
+                                    <p className={`text-base font-black ${model.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(model.pnl)}</p>
+                                    <div className="w-24 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden ml-auto">
+                                        <div className={`h-full ${model.pnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: '60%' }} />
                                     </div>
                                 </div>
                             </div>
@@ -576,43 +507,29 @@ const Analytics = () => {
     );
 };
 
-// Reusable KPI Card Component
 const KPICard = ({ title, value, subValue, color, icon }) => {
     const colorClasses = {
-        emerald: "from-emerald-500/10 to-emerald-500/5 text-emerald-400 border-emerald-500/20",
-        rose: "from-rose-500/10 to-rose-500/5 text-rose-400 border-rose-500/20",
-        cyan: "from-cyan-500/10 to-cyan-500/5 text-cyan-400 border-cyan-500/20",
-        violet: "from-violet-500/10 to-violet-500/5 text-violet-400 border-violet-500/20",
-        amber: "from-amber-500/10 to-amber-500/5 text-amber-400 border-amber-500/20"
+        emerald: "text-emerald-400", rose: "text-rose-400", cyan: "text-cyan-400", violet: "text-violet-400", amber: "text-amber-400"
     };
-
     const iconColors = {
-        emerald: "bg-emerald-500 text-white shadow-emerald-500/20",
-        rose: "bg-rose-500 text-white shadow-rose-500/20",
-        cyan: "bg-cyan-500 text-white shadow-cyan-500/20",
-        violet: "bg-violet-500 text-white shadow-violet-500/20",
-        amber: "bg-amber-500 text-white shadow-amber-500/20"
+        emerald: "bg-emerald-500/10 text-emerald-400", rose: "bg-rose-500/10 text-rose-400", cyan: "bg-cyan-500/10 text-cyan-400", violet: "bg-violet-500/10 text-violet-400", amber: "bg-amber-500/10 text-amber-400"
     };
 
     return (
-        <div className={`relative overflow-hidden bg-gradient-to-br ${colorClasses[color]} border rounded-3xl p-5 hover:scale-[1.02] transition-transform duration-300 shadow-xl`}>
-            {/* Background Pattern */}
-            <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/3 -translate-y-1/3">
-                <span className="material-symbols-outlined text-[120px]">{icon}</span>
-            </div>
-
-            <div className="flex justify-between items-start mb-4">
-                <div className={`rounded-xl p-2.5 shadow-lg ${iconColors[color]} flex items-center justify-center`}>
-                    <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        <div className="relative overflow-hidden bg-[#0F172A]/80 backdrop-blur-3xl border border-white/5 rounded-3xl p-6 hover:-translate-y-1 transition-all duration-500 shadow-xl group">
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                    <div className={`w-12 h-12 rounded-2xl ${iconColors[color]} flex items-center justify-center border border-white/5`}>
+                        <span className="material-symbols-outlined text-[24px]">{icon}</span>
+                    </div>
                 </div>
-            </div>
-
-            <div>
-                <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">{title}</p>
-                <h3 className="text-3xl font-black tracking-tight text-white mb-1">{value}</h3>
-                <p className="text-[11px] font-bold opacity-80 flex items-center gap-1">
-                    {subValue}
-                </p>
+                <div>
+                    <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.25em] mb-2">{title}</h3>
+                    <div className="flex items-baseline gap-3">
+                        <span className="text-2xl font-black text-white tracking-tighter italic leading-none">{value}</span>
+                    </div>
+                    <p className={`text-[11px] font-bold uppercase tracking-widest mt-3 opacity-60 ${colorClasses[color]}`}>{subValue}</p>
+                </div>
             </div>
         </div>
     );

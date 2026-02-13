@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { COUNTRIES } from '../constants/countries';
+import { soundEngine } from '../utils/SoundEngine';
 
 // Observer System to prevent UI elements from being cut off
 const useBoundaryObserver = (coords, padding = 16) => {
@@ -77,8 +78,12 @@ export default function Profile() {
         friendRequests,
         sendFriendRequest,
         acceptFriendRequest,
+        removeFriend,
+        loadFriends,
         syncProfileToCloud,
-        supabase
+        supabase,
+        t,
+        formatCurrency
     } = useData();
     const { user } = useAuth();
     const fileInputRef = useRef(null);
@@ -133,6 +138,12 @@ export default function Profile() {
     };
 
     const handleGoalToggle = (id) => {
+        const goal = (userProfile.goals || []).find(g => g.id === id);
+        if (goal && !goal.completed) {
+            soundEngine.playSuccess();
+        } else {
+            soundEngine.playClick();
+        }
         const updatedGoals = (userProfile.goals || []).map(g =>
             g.id === id ? { ...g, completed: !g.completed } : g
         );
@@ -210,20 +221,20 @@ export default function Profile() {
                         onClick={() => setActiveTab('identity')}
                         className={`px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 ${activeTab === 'identity' ? 'bg-primary text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]' : 'text-slate-500 hover:text-white'}`}
                     >
-                        Operator Identity
+                        {t('operator_identity')}
                     </button>
                     <button
                         onClick={() => setActiveTab('network')}
                         className={`px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 ${activeTab === 'network' ? 'bg-primary text-white shadow-[0_0_20px_rgba(124,58,237,0.3)]' : 'text-slate-500 hover:text-white'}`}
                     >
-                        Social Network
+                        {t('social_network')}
                     </button>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="hidden xl:flex items-center gap-3 px-6 py-3 bg-[#131525] border border-white/5 rounded-xl">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 font-mono">System Ready</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 font-mono">{t('system_ready')}</span>
                     </div>
                     <button
                         onClick={() => {
@@ -232,7 +243,7 @@ export default function Profile() {
                         }}
                         className="px-10 py-4 bg-primary text-white font-black rounded-xl hover:brightness-110 transition-all shadow-xl shadow-primary/10 active:scale-95 text-[10px] uppercase tracking-[0.4em]"
                     >
-                        Calibrate Identity
+                        {t('calibrate_identity')}
                     </button>
                 </div>
             </div>
@@ -254,7 +265,7 @@ export default function Profile() {
                                         <span className="material-symbols-outlined text-white text-xl">{stats.rank?.icon}</span>
                                     </div>
                                     <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-[#0b0e14] border border-white/10 rounded-lg flex flex-col items-center justify-center shadow-xl z-20">
-                                        <span className="text-[8px] font-black text-primary uppercase tracking-tighter leading-none mb-1">LVL</span>
+                                        <span className="text-[8px] font-black text-primary uppercase tracking-tighter leading-none mb-1">{t('level')}</span>
                                         <span className="text-xl font-black text-white leading-none tracking-tighter">{stats.level || 1}</span>
                                     </div>
                                 </div>
@@ -275,7 +286,7 @@ export default function Profile() {
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className="material-symbols-outlined text-primary text-base">verified_user</span>
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">RISK: {userProfile.riskAppetite}</span>
+                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">{t('risk_appetite')}: {userProfile.riskAppetite}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -291,7 +302,7 @@ export default function Profile() {
                                                 <span className="text-[15px] font-black text-slate-500 uppercase tracking-tighter font-mono">{stats.nextRank?.name.split(' ')[0] || 'MAX'}</span>
                                             </div>
                                         </div>
-                                        <span className="text-[13px] font-black text-primary font-mono">{Math.floor(stats.xp || 0).toLocaleString()} XP</span>
+                                        <span className="text-[13px] font-black text-primary font-mono">{Math.floor(stats.xp || 0).toLocaleString()} {t('xp')}</span>
                                     </div>
                                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                                         <div className="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full transition-all duration-[2s] shadow-[0_0_15px_rgba(124,58,237,0.4)]" style={{ width: `${stats.levelProgress || 0}%` }} />
@@ -301,15 +312,15 @@ export default function Profile() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatTile label="Risk Protocol" value={userProfile.riskAppetite} icon="shield_with_heart" color="text-emerald-400" />
-                            <StatTile label="Tactical Precision" value={`${stats.winRate}%`} icon="target" color="text-primary" />
+                            <StatTile label={t('risk_protocol')} value={userProfile.riskAppetite} icon="shield_with_heart" color="text-emerald-400" />
+                            <StatTile label={t('tactical_precision')} value={`${stats.winRate}%`} icon="target" color="text-primary" />
                             <StatTile
-                                label="PNL"
-                                value={`${stats.totalPnL >= 0 ? '+' : ''}$${(stats.totalPnL / 1000).toFixed(1)}K`}
+                                label={t('pnl')}
+                                value={`${stats.totalPnL >= 0 ? '+' : ''}${formatCurrency(stats.totalPnL)}`}
                                 icon="payments"
                                 color={stats.totalPnL > 0 ? 'text-emerald-500' : stats.totalPnL < 0 ? 'text-rose-500' : 'text-amber-500'}
                             />
-                            <StatTile label="Active Rank" value={stats.rank?.name.split(' ')[0]} icon="military_tech" color="text-amber-400" />
+                            <StatTile label={t('active_rank')} value={stats.rank?.name.split(' ')[0]} icon="military_tech" color="text-amber-400" />
                         </div>
 
                         <div className="bg-[#131525] border border-white/10 rounded-xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group/obj">
@@ -318,11 +329,11 @@ export default function Profile() {
                                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                         <span className="material-symbols-outlined text-primary text-[28px]">assignment_turned_in</span>
                                     </div>
-                                    Operational Objectives
+                                    {t('operational_objectives')}
                                 </h3>
                                 <div className="flex gap-4">
-                                    <Badge label={`${(userProfile.goals || []).filter(g => g.completed).length} Achieved`} bg="bg-emerald-500/10" color="text-emerald-500" />
-                                    <Badge label={`${(userProfile.goals || []).filter(g => !g.completed).length} Pending`} bg="bg-primary/10" color="text-primary" />
+                                    <Badge label={`${(userProfile.goals || []).filter(g => g.completed).length} ${t('achieved')}`} bg="bg-emerald-500/10" color="text-emerald-500" />
+                                    <Badge label={`${(userProfile.goals || []).filter(g => !g.completed).length} ${t('pending')}`} bg="bg-primary/10" color="text-primary" />
                                 </div>
                             </div>
 
@@ -367,7 +378,7 @@ export default function Profile() {
                                 <div className="flex items-center justify-between h-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-                                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 italic font-mono">Combat Readiness</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 italic font-mono">{t('combat_readiness')}</span>
                                     </div>
                                     <div className="px-3 py-1 bg-white/5 border border-white/10 text-[8px] font-black text-primary font-mono rounded shadow-inner">v1.0.7</div>
                                 </div>
@@ -381,7 +392,7 @@ export default function Profile() {
                                         <h4 className="text-3xl font-black text-white tracking-tighter italic uppercase truncate leading-none mb-2 bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">{tacticalGrade.label}</h4>
                                         <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] font-mono flex items-center gap-2">
                                             <span className="w-4 h-[1px] bg-slate-800" />
-                                            OPERATOR CLASS
+                                            {t('operator_class')}
                                         </div>
                                     </div>
                                 </div>
@@ -399,7 +410,7 @@ export default function Profile() {
                                 <div className="flex items-center justify-between mb-12">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 font-mono flex items-center gap-3">
                                         <span className="material-symbols-outlined text-primary text-sm">leaderboard</span>
-                                        Mastery Analysis
+                                        {t('mastery_analysis')}
                                     </h3>
                                     <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover/mastery:border-primary/40 transition-colors">
                                         <span className="material-symbols-outlined text-primary text-xl">analytics</span>
@@ -407,7 +418,7 @@ export default function Profile() {
                                 </div>
                                 <div className="space-y-12">
                                     <MasteryItem
-                                        label="Strategy"
+                                        label={t('strategy')}
                                         value={masteryStats.strategy}
                                         icon="psychology"
                                         gradient="from-primary via-primary to-primary-light"
@@ -415,7 +426,7 @@ export default function Profile() {
                                         description="Hybrid of Precision & Narrative. Measures win rate vs. journaling depth (confluences, images, and reflections)."
                                     />
                                     <MasteryItem
-                                        label="Mitigation"
+                                        label={t('mitigation')}
                                         value={masteryStats.mitigation}
                                         icon="verified_user"
                                         gradient="from-cyan-400 via-primary to-primary"
@@ -423,7 +434,7 @@ export default function Profile() {
                                         description="Operational Discipline. Tracking the percentage of executions performed without any recorded mistakes or errors."
                                     />
                                     <MasteryItem
-                                        label="Buffer"
+                                        label={t('buffer')}
                                         value={masteryStats.buffer}
                                         icon="self_improvement"
                                         gradient="from-emerald-400 via-cyan-400 to-cyan-400"
@@ -441,6 +452,8 @@ export default function Profile() {
                     friendRequests={friendRequests}
                     sendFriendRequest={sendFriendRequest}
                     acceptFriendRequest={acceptFriendRequest}
+                    removeFriend={removeFriend}
+                    loadFriends={loadFriends}
                     supabase={supabase}
                     userId={user?.id}
                     onContextMenu={onContextMenu}
@@ -521,7 +534,12 @@ export default function Profile() {
                                 Request Data Sync
                             </button>
                             <button
-                                onClick={() => setContextMenu(null)}
+                                onClick={async () => {
+                                    if (confirm(`Terminate connection with ${contextMenu.friend.name}?`)) {
+                                        await removeFriend(contextMenu.friend.id);
+                                        setContextMenu(null);
+                                    }
+                                }}
                                 className="w-full py-3 bg-transparent border border-white/5 rounded-xl text-[8px] font-black text-slate-600 uppercase tracking-[0.4em] hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 group"
                             >
                                 <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">logout</span>
@@ -651,10 +669,12 @@ function Badge({ label, bg, color }) {
     );
 }
 
-function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptFriendRequest, supabase, userId, onContextMenu }) {
+function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptFriendRequest, removeFriend, loadFriends, supabase, userId, onContextMenu }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [socialTab, setSocialTab] = useState('syncs'); // 'syncs' or 'leaderboard'
+    const { userProfile, stats, formatCurrency } = useData();
 
     const handleSearch = async () => {
         if (!searchQuery.trim() || !supabase) return;
@@ -740,109 +760,271 @@ function SocialNetworkView({ friends, friendRequests, sendFriendRequest, acceptF
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Active Syncs - Compact */}
-                <div className="lg:col-span-7 space-y-4">
-                    <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic">
-                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                                    <span className="material-symbols-outlined text-emerald-500 text-xl">hub</span>
+            {/* Sub-Navigation for Social */}
+            <div className="flex items-center gap-4 border-b border-white/5 pb-2">
+                <button
+                    onClick={() => setSocialTab('syncs')}
+                    className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${socialTab === 'syncs' ? 'text-primary' : 'text-slate-500 hover:text-white'}`}
+                >
+                    Active Syncs
+                    {socialTab === 'syncs' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]" />}
+                </button>
+                <button
+                    onClick={() => setSocialTab('leaderboard')}
+                    className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${socialTab === 'leaderboard' ? 'text-primary' : 'text-slate-500 hover:text-white'}`}
+                >
+                    Leaderboard Matrix
+                    {socialTab === 'leaderboard' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]" />}
+                </button>
+            </div>
+
+            {socialTab === 'syncs' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Active Syncs - Compact */}
+                    <div className="lg:col-span-7 space-y-4">
+                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic">
+                                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                        <span className="material-symbols-outlined text-emerald-500 text-xl">hub</span>
+                                    </div>
+                                    Active Syncs
+                                </h3>
+                                <div className="px-2 py-0.5 bg-emerald-500/5 border border-emerald-500/10 rounded text-[8px] font-black text-emerald-500 uppercase tracking-widest leading-none">
+                                    {friends.length} AUTH
                                 </div>
-                                Active Syncs
-                            </h3>
-                            <div className="px-2 py-0.5 bg-emerald-500/5 border border-emerald-500/10 rounded text-[8px] font-black text-emerald-500 uppercase tracking-widest leading-none">
-                                {friends.length} AUTH
                             </div>
-                        </div>
 
-                        <div className="space-y-3">
-                            {friends.length > 0 ? friends.map(friend => (
-                                <div
-                                    key={friend.id}
-                                    onContextMenu={(e) => onContextMenu(e, friend)}
-                                    className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-center gap-6 group transition-all duration-300 hover:border-emerald-500/30 cursor-context-menu"
-                                >
-                                    <div className="flex items-center gap-4 min-w-[160px]">
-                                        <div className="relative">
-                                            <img src={friend.avatar_url} className="w-12 h-12 rounded-lg object-cover border border-white/10 transition-transform" alt="Friend" />
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded flex items-center justify-center text-white border-2 border-[#131525] shadow-lg">
-                                                <span className="material-symbols-outlined text-[8px] font-black">bolt</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-base font-black text-white tracking-tighter italic uppercase leading-none mb-1">{friend.name}</div>
-                                            <div className="text-[8px] font-black text-primary uppercase tracking-widest font-mono opacity-60">{friend.rank_name}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 grid grid-cols-3 gap-4 border-l border-white/5 pl-6">
-                                        <div>
-                                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">Yield</div>
-                                            <div className="text-xs font-black text-white italic font-mono uppercase">
-                                                {friend.win_rate !== null ? `${friend.win_rate}%` : '---'}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">XP</div>
-                                            <div className="text-xs font-black text-white italic font-mono uppercase">LVL {Math.floor(Math.sqrt((friend.xp || 0) / 100)) + 1}</div>
-                                        </div>
-                                        <div className="flex justify-end pr-2">
-                                            <button className="w-9 h-9 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/5 flex items-center justify-center active:scale-95">
-                                                <span className="material-symbols-outlined text-lg">logout</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10">
-                                    <span className="material-symbols-outlined text-3xl text-white/5 mb-3">group_off</span>
-                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] italic">No active syncs</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Signals - Compact */}
-                <div className="lg:col-span-5 space-y-4">
-                    <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic leading-none">
-                                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shadow-inner">
-                                    <span className="material-symbols-outlined text-primary text-xl">satellite_alt</span>
-                                </div>
-                                Signals
-                            </h3>
-                            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary shadow-lg border border-primary/20">
-                                {(friendRequests || []).length}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            {(friendRequests || []).length > 0 ? friendRequests.map(req => (
-                                <div key={req.id} className="p-3 bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-4 transition-all hover:bg-white/[0.06]">
-                                    <img src={req.avatar_url} className="w-11 h-11 rounded-lg object-cover border border-white/10" alt="Request" />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-black text-white truncate italic uppercase tracking-tighter">{req.name}</div>
-                                        <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">Incoming Signal</div>
-                                    </div>
-                                    <button
-                                        onClick={() => acceptFriendRequest(req.id)}
-                                        className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                            <div className="space-y-3">
+                                {friends.length > 0 ? friends.map(friend => (
+                                    <div
+                                        key={friend.id}
+                                        onContextMenu={(e) => onContextMenu(e, friend)}
+                                        className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-center gap-6 group transition-all duration-300 hover:border-emerald-500/30 cursor-context-menu"
                                     >
-                                        <span className="material-symbols-outlined text-xl">check</span>
-                                    </button>
+                                        <div className="flex items-center gap-4 min-w-[160px]">
+                                            <div className="relative">
+                                                <img src={friend.avatar_url} className="w-12 h-12 rounded-lg object-cover border border-white/10 transition-transform" alt="Friend" />
+                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded flex items-center justify-center text-white border-2 border-[#131525] shadow-lg">
+                                                    <span className="material-symbols-outlined text-[8px] font-black">bolt</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-base font-black text-white tracking-tighter italic uppercase leading-none mb-1">{friend.name}</div>
+                                                <div className="text-[8px] font-black text-primary uppercase tracking-widest font-mono opacity-60">{friend.rank_name}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 grid grid-cols-3 gap-4 border-l border-white/5 pl-6">
+                                            <div>
+                                                <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">Yield</div>
+                                                <div className="text-xs font-black text-white italic font-mono uppercase">
+                                                    {friend.win_rate !== null ? `${friend.win_rate}%` : '---'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">XP</div>
+                                                <div className="text-xs font-black text-white italic font-mono uppercase">LVL {Math.floor(Math.sqrt((friend.xp || 0) / 100)) + 1}</div>
+                                            </div>
+                                            <div className="flex justify-end pr-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (confirm(`Terminate connection with ${friend.name}?`)) {
+                                                            removeFriend(friend.id);
+                                                        }
+                                                    }}
+                                                    className="w-9 h-9 rounded-lg bg-white/5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/5 flex items-center justify-center active:scale-95"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">logout</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10">
+                                        <span className="material-symbols-outlined text-3xl text-white/5 mb-3">group_off</span>
+                                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] italic">No active syncs</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Signals - Compact */}
+                    <div className="lg:col-span-5 space-y-4">
+                        <div className="bg-[#131525] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black text-white tracking-tighter flex items-center gap-3 uppercase italic leading-none">
+                                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shadow-inner">
+                                        <span className="material-symbols-outlined text-primary text-xl">satellite_alt</span>
+                                    </div>
+                                    Signals
+                                </h3>
+                                <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary shadow-lg border border-primary/20">
+                                    {(friendRequests || []).length}
                                 </div>
-                            )) : (
-                                <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10 flex flex-col items-center justify-center">
-                                    <span className="material-symbols-outlined text-2xl text-white/5 mb-2">notifications_off</span>
-                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] italic">No signals</div>
-                                </div>
-                            )}
+                            </div>
+
+                            <div className="space-y-2">
+                                {(friendRequests || []).length > 0 ? friendRequests.map(req => (
+                                    <div key={req.id} className="p-3 bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-4 transition-all hover:bg-white/[0.06]">
+                                        <img src={req.avatar_url} className="w-11 h-11 rounded-lg object-cover border border-white/10" alt="Request" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-black text-white truncate italic uppercase tracking-tighter">{req.name}</div>
+                                            <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">Incoming Signal</div>
+                                        </div>
+                                        <button
+                                            onClick={() => acceptFriendRequest(req.id)}
+                                            className="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">check</span>
+                                        </button>
+                                    </div>
+                                )) : (
+                                    <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-black/10 flex flex-col items-center justify-center">
+                                        <span className="material-symbols-outlined text-2xl text-white/5 mb-2">notifications_off</span>
+                                        <div className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] italic">No signals</div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
+            ) : (
+                <div className="bg-[#131525] border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden animate-in fade-in duration-500">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+
+                    <div className="flex items-center justify-between mb-10">
+                        <div>
+                            <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-inner">
+                                    <span className="material-symbols-outlined text-amber-500 text-2xl">leaderboard</span>
+                                </div>
+                                Weekly Performance Dominance
+                            </h3>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic flex items-center gap-2">
+                                <span className="w-1 h-1 rounded-full bg-primary" />
+                                Current Session Cycle: Monday - Sunday
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono">Metric:</span>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none font-mono">Consistency Score</span>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    loadFriends();
+                                    if (window.soundEngine) window.soundEngine.playInfo();
+                                }}
+                                className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all active:scale-90 group"
+                                title="Synchronize Intelligence"
+                            >
+                                <span className="material-symbols-outlined text-2xl group-active:animate-spin">sync</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {[
+                            {
+                                id: userId,
+                                name: userProfile.name,
+                                avatar_url: userProfile.avatar,
+                                tag: userProfile.tag,
+                                rank_name: stats.rank?.name,
+                                weekly_consistency_score: stats.winRate > 0 ? Math.round(Math.min(100, (parseFloat(stats.winRate) * 0.5) + 30)) : 0,
+                                weekly_pnl: stats.totalPnL,
+                                isMe: true
+                            },
+                            ...friends
+                        ].sort((a, b) => (b.weekly_consistency_score || 0) - (a.weekly_consistency_score || 0))
+                            .map((entry, idx) => (
+                                <LeaderboardItem
+                                    key={entry.id}
+                                    entry={entry}
+                                    rank={idx + 1}
+                                    formatCurrency={formatCurrency}
+                                    onContextMenu={onContextMenu}
+                                />
+                            ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function LeaderboardItem({ entry, rank, formatCurrency, onContextMenu }) {
+    const isTop3 = rank <= 3;
+    const medalColor = rank === 1 ? 'text-amber-400' : rank === 2 ? 'text-slate-300' : rank === 3 ? 'text-amber-700' : 'text-slate-600';
+
+    return (
+        <div className={`p-5 bg-white/[0.02] border rounded-2xl flex items-center gap-8 group transition-all duration-300 hover:bg-white/[0.04] ${entry.isMe ? 'border-primary/40 bg-primary/5' : 'border-white/5'}`}>
+            {/* Rank Position */}
+            <div className="w-12 flex flex-col items-center">
+                {isTop3 ? (
+                    <span className={`material-symbols-outlined text-3xl ${medalColor} drop-shadow-[0_0_10px_currentColor]`}>military_tech</span>
+                ) : (
+                    <span className="text-xl font-black text-slate-600 italic font-mono">#{rank}</span>
+                )}
+            </div>
+
+            {/* Operator Info */}
+            <div className="flex items-center gap-5 min-w-[240px]">
+                <div className="relative">
+                    <img src={entry.avatar_url} className="w-14 h-14 rounded-2xl object-cover border border-white/10 shadow-xl" alt="Operator" />
+                    {entry.isMe && (
+                        <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-primary text-white text-[8px] font-black uppercase rounded-md shadow-lg border border-white/10">You</div>
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <div className="text-xl font-black text-white italic uppercase tracking-tighter leading-none mb-1.5 flex items-center gap-2 truncate">
+                        {entry.name}
+                        {entry.is_verified && <span className="material-symbols-outlined text-primary text-sm">verified</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-primary font-mono tracking-tighter uppercase italic">#{entry.tag || 'X-000'}</span>
+                        <div className="w-1 h-1 rounded-full bg-slate-700" />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none font-mono">{entry.rank_name || 'Initiate'}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Metrics Section */}
+            <div className="flex-1 grid grid-cols-2 gap-8 px-8 border-x border-white/5">
+                <div className="space-y-3">
+                    <div className="flex justify-between items-end">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono">Consistency Score</span>
+                        <span className={`text-lg font-black italic font-mono ${(entry.weekly_consistency_score || 0) >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {entry.weekly_consistency_score || 0}%
+                        </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden p-[1px] border border-white/5">
+                        <div
+                            className={`h-full rounded-full transition-all duration-[2s] shadow-[0_0_10px_rgba(0,0,0,0.5)] ${(entry.weekly_consistency_score || 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${entry.weekly_consistency_score || 0}%` }}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono mb-1">Weekly Delta</span>
+                    <div className={`text-xl font-black italic font-mono ${(entry.weekly_pnl || 0) >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                        {(entry.weekly_pnl || 0) >= 0 ? '+' : ''}{formatCurrency(entry.weekly_pnl || 0)}
+                    </div>
+                </div>
+            </div>
+
+            {/* Actions / View Profile */}
+            <div className="flex items-center gap-3 pr-2">
+                <button
+                    onClick={(e) => onContextMenu(e, entry)}
+                    className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-black text-white uppercase tracking-[0.2em] transition-all active:scale-95"
+                >
+                    Tactical Review
+                </button>
             </div>
         </div>
     );

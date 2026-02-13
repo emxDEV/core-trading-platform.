@@ -64,7 +64,8 @@ export default function PillInput({
     placeholder = 'Type or select...',
     defaultColor = 'primary',
     category = 'default',
-    allowMultiple = false
+    allowMultiple = false,
+    className = ''
 }) {
     const { getPillColor, savePillColor } = useData();
     const [isOpen, setIsOpen] = useState(false);
@@ -194,7 +195,7 @@ export default function PillInput({
     }
 
     return (
-        <div ref={containerRef} className="relative">
+        <div ref={containerRef} className={`relative ${className}`}>
             <div className={`flex flex-wrap items-center gap-1.5 min-h-[42px] bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/50 transition-all ${isOpen ? 'ring-2 ring-primary/50' : ''}`}>
                 {allowMultiple && selectedValues.map((val) => renderPill(val, true))}
                 <input
