@@ -107,15 +107,48 @@ ipcMain.handle('check-for-updates', async () => {
         return { success: false, error: error.message };
     }
 });
+
+// Force Restart and Install
+ipcMain.handle('restart-and-install', () => {
+    autoUpdater.quitAndInstall(false, true);
+});
+
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 
 function setupAutoUpdater() {
-    autoUpdater.checkForUpdatesAndNotify();
-    setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 60 * 60 * 1000);
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
 
-    autoUpdater.on('update-available', () => console.log('Update available.'));
-    autoUpdater.on('update-downloaded', () => console.log('Update downloaded.'));
+    autoUpdater.on('checking-for-update', () => {
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'checking' }));
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'available', info }));
+    });
+
+    autoUpdater.on('update-not-available', () => {
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'not-available' }));
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'progress', progress }));
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'downloaded', info }));
+    });
+
+    autoUpdater.on('error', (err) => {
+        console.error('Updater Error:', err);
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'error', message: err.message, error: err }));
+    });
+
+    // Initial check
+    autoUpdater.checkForUpdatesAndNotify();
+    // Check every hour
+    setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 60 * 60 * 1000);
 }
 
 function createWindow() {

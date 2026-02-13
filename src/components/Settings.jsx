@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ViewHeader from './ViewHeader';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/TradeContext';
@@ -20,6 +20,53 @@ export default function Settings() {
     const [accountEditError, setAccountEditError] = useState('');
     const [accountEditSuccess, setAccountEditSuccess] = useState('');
     const [accountEditLoading, setAccountEditLoading] = useState(false);
+
+    // Update state
+    const [updateStatus, setUpdateStatus] = useState('idle'); // idle, checking, available, downloading, downloaded, error, not-available
+    const [updateProgress, setUpdateProgress] = useState(0);
+    const [updateInfo, setUpdateInfo] = useState(null);
+
+    useEffect(() => {
+        if (!window.electron) return;
+
+        const handleUpdaterEvent = (event, data) => {
+            console.log('[Updater Event]', data);
+            switch (data.type) {
+                case 'checking':
+                    setUpdateStatus('checking');
+                    break;
+                case 'available':
+                    setUpdateStatus('available');
+                    setUpdateInfo(data.info);
+                    showInfo(`Tactical update found: v${data.info.version}. Starting download...`);
+                    break;
+                case 'not-available':
+                    setUpdateStatus('not-available');
+                    break;
+                case 'progress':
+                    setUpdateStatus('downloading');
+                    setUpdateProgress(data.progress.percent);
+                    break;
+                case 'downloaded':
+                    setUpdateStatus('downloaded');
+                    setUpdateInfo(data.info);
+                    showSuccess(`Update v${data.info.version} ready for extraction.`);
+                    soundEngine.playSuccess();
+                    break;
+                case 'error':
+                    setUpdateStatus('error');
+                    console.error('Update error:', data.message);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.electron.ipcRenderer.on('updater-event', handleUpdaterEvent);
+        return () => {
+            window.electron.ipcRenderer.removeAllListeners('updater-event');
+        };
+    }, []);
 
     const resetEditState = () => {
         setAccountEditValue('');
@@ -479,27 +526,55 @@ export default function Settings() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black dark:text-white uppercase tracking-widest mb-1">Protocol Version</p>
-                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.0.7-stable</p>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Build 1.0.9-stable</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={async () => {
-                                    showInfo("Checking for protocol updates...");
-                                    if (window.electron) {
-                                        const result = await window.electron.ipcRenderer.invoke('check-for-updates');
-                                        if (result.success) {
-                                            showSuccess("Checking initiated. You will be notified if a patch is found.");
-                                        } else {
-                                            showInfo(result.message || "Update check failed.");
-                                        }
-                                    } else {
-                                        setTimeout(() => showSuccess("You are running the latest stable build."), 2000);
-                                    }
-                                }}
-                                className="px-5 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm"
-                            >
-                                Check for Updates
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {updateStatus === 'downloading' && (
+                                    <div className="flex flex-col items-end gap-1.5 min-w-[120px]">
+                                        <div className="flex justify-between w-full">
+                                            <span className="text-[8px] font-black text-primary uppercase tracking-widest">Downloading...</span>
+                                            <span className="text-[8px] font-black text-white">{Math.round(updateProgress)}%</span>
+                                        </div>
+                                        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${updateProgress}%` }} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {updateStatus === 'downloaded' ? (
+                                    <button
+                                        onClick={() => {
+                                            soundEngine.playClick();
+                                            window.electron.ipcRenderer.invoke('restart-and-install');
+                                        }}
+                                        className="px-5 py-3 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 animate-pulse"
+                                    >
+                                        Install & Restart
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={async () => {
+                                            if (updateStatus === 'checking' || updateStatus === 'downloading') return;
+
+                                            showInfo("Scanning for protocol updates...");
+                                            if (window.electron) {
+                                                const result = await window.electron.ipcRenderer.invoke('check-for-updates');
+                                                if (!result.success) {
+                                                    showInfo(result.message || "Scan failed.");
+                                                }
+                                            } else {
+                                                setTimeout(() => showSuccess("You are running the latest stable build."), 2000);
+                                            }
+                                        }}
+                                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                                        className={`px-5 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm ${(updateStatus === 'checking' || updateStatus === 'downloading') ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
+                                    >
+                                        {updateStatus === 'checking' ? 'Scanning...' : 'Check for Updates'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl flex items-center justify-between group">
