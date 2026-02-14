@@ -120,6 +120,11 @@ function setupAutoUpdater() {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
 
+    // Erlaube Updates auch wenn die Signaturprüfung fehlschlägt (wichtig für unsignierte macOS Apps)
+    if (process.platform === 'darwin') {
+        autoUpdater.forceDevUpdateConfig = false;
+    }
+
     autoUpdater.on('checking-for-update', () => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'checking' }));
     });

@@ -1,7 +1,7 @@
 {
   "name": "core",
   "private": true,
-  "version": "1.1.6",
+  "version": "1.1.7",
   "author": "User",
   "type": "module",
   "main": "electron/main.cjs",
@@ -72,8 +72,6 @@
         "dmg",
         "zip"
       ],
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
       "identity": null,
       "icon": "public/icon.icns",
       "category": "public.app-category.finance",
