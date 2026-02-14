@@ -21,6 +21,8 @@ import LoadingScreen from './components/LoadingScreen';
 import Calendar from './components/Calendar';
 import TitleBar from './components/TitleBar';
 import ErrorBoundary from './components/ErrorBoundary';
+import UpdateSummaryModal from './components/UpdateSummaryModal';
+import pkg from '../package.json';
 
 import { useShortcuts } from './hooks/useShortcuts';
 import { useState, useEffect } from 'react';
@@ -65,6 +67,9 @@ function AuthGate() {
   const [needsTutorial, setNeedsTutorial] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [profileName, setProfileName] = useState('');
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const APP_VERSION = pkg.version;
 
   useEffect(() => {
     if (user) {
@@ -80,6 +85,15 @@ function AuthGate() {
       setNeedsOnboarding(!onboardingDone);
       setNeedsTutorial(!onboardingDone || !tutorialDone);
       setOnboardingChecked(true);
+
+      // Version Check for Update Modal
+      const lastSeenVersion = localStorage.getItem(`last_seen_version_${user.id}`);
+      if (lastSeenVersion && lastSeenVersion !== APP_VERSION) {
+        setShowUpdateModal(true);
+      } else if (!lastSeenVersion) {
+        // First time users don't see the update modal after onboarding
+        localStorage.setItem(`last_seen_version_${user.id}`, APP_VERSION);
+      }
 
       // Get profile name for tutorial greeting
       try {
@@ -134,6 +148,15 @@ function AuthGate() {
           onComplete={() => {
             localStorage.setItem(`tutorial_complete_${user.id}`, 'true');
             setNeedsTutorial(false);
+          }}
+        />
+      )}
+      {showUpdateModal && (
+        <UpdateSummaryModal
+          version={APP_VERSION}
+          onClose={() => {
+            localStorage.setItem(`last_seen_version_${user.id}`, APP_VERSION);
+            setShowUpdateModal(false);
           }}
         />
       )}

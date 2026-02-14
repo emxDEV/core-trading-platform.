@@ -43,6 +43,7 @@ export default function Settings() {
                     break;
                 case 'not-available':
                     setUpdateStatus('not-available');
+                    showInfo("Mission critical: You are currently running the latest stable build.");
                     break;
                 case 'progress':
                     setUpdateStatus('downloading');
@@ -57,6 +58,7 @@ export default function Settings() {
                 case 'error':
                     setUpdateStatus('error');
                     console.error('Update error:', data.message);
+                    showInfo(`Protocol scan failed: ${data.message || 'Unknown error'}`);
                     break;
                 default:
                     break;
