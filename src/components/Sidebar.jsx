@@ -22,7 +22,7 @@ export default function Sidebar() {
                         </svg>
                     </div>
                     {!isSidebarCollapsed && (
-                        <span className="font-bold text-2xl tracking-tighter text-slate-800 dark:text-white animate-in fade-in slide-in-from-left-4 duration-700">core</span>
+                        <span className="font-bold text-2xl tracking-tighter text-slate-800 dark:text-white animate-in fade-in slide-in-from-left-4 duration-700 shimmer-text">core</span>
                     )}
                 </button>
             </div>
@@ -126,7 +126,9 @@ export default function Sidebar() {
                     {!isSidebarCollapsed && (
                         <div className="flex flex-col truncate animate-in fade-in slide-in-from-left-2 duration-500">
                             <span className="text-xs font-black dark:text-white truncate uppercase tracking-tight">{userProfile.name}</span>
-                            <span className="text-[10px] text-primary font-bold uppercase tracking-widest">{stats.rank?.name || 'Initiate'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-400">
+                                {stats.rank?.name || 'Initiate'}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -148,7 +150,7 @@ function NavItem({ icon, label, active = false, isCollapsed, onClick }) {
                 ${isCollapsed ? 'justify-center px-0 mx-2' : ''}
             `}
         >
-            <span className={`material-symbols-outlined text-[24px] transition-transform duration-300 group-hover:scale-110 ${active ? 'fill-1' : ''}`}>
+            <span className={`material-symbols-outlined text-[24px] transition-transform duration-300 group-hover:scale-110 ${active ? 'fill-1 drop-shadow-glow' : ''}`}>
                 {icon}
             </span>
             {!isCollapsed && (
@@ -175,7 +177,7 @@ function IconButton({ icon, label, active = false, onClick }) {
                 }
             `}
         >
-            <span className={`material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:scale-110 ${active ? 'fill-1' : ''}`}>
+            <span className={`material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:scale-110 ${active ? 'fill-1 drop-shadow-glow' : ''}`}>
                 {icon}
             </span>
 

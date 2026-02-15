@@ -1,0 +1,597 @@
+
+> core@1.1.9 lint
+> eslint .
+
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/App.jsx
+   89:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  87 |       const tutorialDone = localStorage.getItem(`tutorial_complete_${user.id}`);
+  88 |
+> 89 |       setNeedsOnboarding(!onboardingDone);
+     |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  90 |       setNeedsTutorial(!onboardingDone || !tutorialDone);
+  91 |       setOnboardingChecked(true);
+  92 |  react-hooks/set-state-in-effect
+  106:16  error    'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+  106:19  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-empty
+  112:6   warning  React Hook useEffect has a missing dependency: 'APP_VERSION'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  176:50  error    'isModalOpen' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  225:84  error    'isDailyJournalOpen' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  241:28  error    'i18n' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  267:6   warning  React Hook useEffect has a missing dependency: 'setIsWeeklySummaryOpen'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AIAgentPanel.jsx
+  46:8  warning  React Hook useEffect has a missing dependency: 'sendMessage'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AccountPickers.jsx
+  5:10  error  'useNotifications' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AccountStatsTooltip.jsx
+  9:96  error  'failingDay' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Analytics.jsx
+  255:50  error  React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/rules-of-hooks
+  259:41  error  Error: Cannot reassign variable after render completes
+
+Reassigning `cum` after render has completed can cause inconsistent behavior on subsequent renders. Consider using state instead.
+
+  257 |                                     let cum = 0;
+  258 |                                     return sorted.map(t => {
+> 259 |                                         cum += (t.pnl || 0);
+      |                                         ^^^ Cannot reassign `cum` after render completes
+  260 |                                         return { date: new Date(t.date).toLocaleDateString(), pnl: cum };
+  261 |                                     });
+  262 |                                 }, [allTrades])}>  react-hooks/immutability
+  288:87  error  React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/rules-of-hooks
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AnimatedNumber.jsx
+  41:8  warning  React Hook useEffect has a missing dependency: 'displayValue'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AppTutorial.jsx
+  119:11  error  'progress' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  123:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  121 |
+  122 |     useEffect(() => {
+> 123 |         setFadeIn(true);
+      |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  124 |     }, [step]);
+  125 |
+  126 |     const handleNext = () => {  react-hooks/set-state-in-effect
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/AuthPage.jsx
+  57:18  error  'err' is defined but never used  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Calendar.jsx
+  239:49  error  'duration' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  241:50  error  'e' is defined but never used                                                             no-unused-vars
+  241:53  error  Empty block statement                                                                     no-empty
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/CalendarHeatmap.jsx
+  18:11  error    'maxMagnitude' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                        no-unused-vars
+  86:8   warning  React Hook useMemo has an unnecessary dependency: 'selectedDate'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/CommandCenter.jsx
+   15:9   error    'addTrade' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+   26:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  24 |     useEffect(() => {
+  25 |         if (isCommandCenterOpen) {
+> 26 |             setQuery('');
+     |             ^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |             setSelectedIndex(0);
+  28 |             setTimeout(() => inputRef.current?.focus(), 10);
+  29 |         }                                                                                                                                             react-hooks/set-state-in-effect
+   42:29  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setIsImportModalOpen`, but the source dependencies were [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]. Inferred different dependency than source.
+
+   40 |
+   41 |     // Search Results Logic
+>  42 |     const results = useMemo(() => {
+      |                             ^^^^^^^
+>  43 |         if (!query.trim()) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  44 |             return [
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |         return list;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |     }, [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  111 |
+  112 |     const handleKeyDown = (e) => {
+  113 |         if (e.key === 'ArrowDown') {  react-hooks/preserve-manual-memoization
+   42:29  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setIsImportModalOpen`, but the source dependencies were [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]. Inferred different dependency than source.
+
+   40 |
+   41 |     // Search Results Logic
+>  42 |     const results = useMemo(() => {
+      |                             ^^^^^^^
+>  43 |         if (!query.trim()) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  44 |             return [
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |         return list;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |     }, [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  111 |
+  112 |     const handleKeyDown = (e) => {
+  113 |         if (e.key === 'ArrowDown') {  react-hooks/preserve-manual-memoization
+   42:29  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setIsImportModalOpen`, but the source dependencies were [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]. Inferred different dependency than source.
+
+   40 |
+   41 |     // Search Results Logic
+>  42 |     const results = useMemo(() => {
+      |                             ^^^^^^^
+>  43 |         if (!query.trim()) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  44 |             return [
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 109 |         return list;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |     }, [query, accounts, symbols, setCurrentView, setAnalyticsFilters, openModal]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  111 |
+  112 |     const handleKeyDown = (e) => {
+  113 |         if (e.key === 'ArrowDown') {  react-hooks/preserve-manual-memoization
+  110:8   warning  React Hook useMemo has a missing dependency: 'setIsImportModalOpen'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/CopyCockpit.jsx
+  136:26  error  'showError' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/CurrencyInput.jsx
+  19:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  17 |     useEffect(() => {
+  18 |         if (!isFocused) {
+> 19 |             setDisplayValue(format(value));
+     |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |         } else if (displayValue === '' && value !== '') {
+  21 |             // Initial focus shift
+  22 |             setDisplayValue(String(value));  react-hooks/set-state-in-effect
+  24:8   warning  React Hook useEffect has a missing dependency: 'displayValue'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/DailyJournal.jsx
+  11:9   error    'userProfile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  46:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  44 |     useEffect(() => {
+  45 |         if (isDailyJournalOpen) {
+> 46 |             setIsVisible(true);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |             requestAnimationFrame(() => {
+  48 |                 requestAnimationFrame(() => {
+  49 |                     setIsAnimating(true);                                                                     react-hooks/set-state-in-effect
+  62:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  60 |         const journal = dailyJournals.find(j => j.date === activeDate);
+  61 |         if (journal) {
+> 62 |             setCurrentJournal({
+     |             ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  63 |                 ...journal,
+  64 |                 goals: typeof journal.goals === 'string' ? JSON.parse(journal.goals) : (journal.goals || [])
+  65 |             });  react-hooks/set-state-in-effect
+  75:8   warning  React Hook useEffect has a missing dependency: 'DEFAULT_GOALS'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Dashboard.jsx
+   35:11  error    'dragNode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+   72:9   error    Error: This value cannot be modified
+
+Modifying a variable defined outside a component or hook is not allowed. Consider using an effect.
+
+  70 |
+  71 |         // Disable text selection during drag
+> 72 |         document.body.style.userSelect = 'none';
+     |         ^^^^^^^^^^^^^^^^^^^ value cannot be modified
+  73 |         document.body.style.cursor = 'grabbing';
+  74 |     };
+  75 |                                                react-hooks/immutability
+   73:9   error    Error: This value cannot be modified
+
+Modifying a variable defined outside a component or hook is not allowed. Consider using an effect.
+
+  71 |         // Disable text selection during drag
+  72 |         document.body.style.userSelect = 'none';
+> 73 |         document.body.style.cursor = 'grabbing';
+     |         ^^^^^^^^^^^^^^^^^^^ value cannot be modified
+  74 |     };
+  75 |
+  76 |     const handleDragOver = (e, targetId) => {  react-hooks/immutability
+  138:8   warning  React Hook useEffect has a missing dependency: 'handleDragEnd'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  274:63  error    'index' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/DateRangePicker.jsx
+    2:10  error  'createPortal' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  190:39  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  188 |     useEffect(() => {
+  189 |         if (isOpen) {
+> 190 |             if (dateFilter.startDate) setStartDate(new Date(dateFilter.startDate));
+      |                                       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  191 |             if (dateFilter.endDate) setEndDate(new Date(dateFilter.endDate));
+  192 |             // Set view to start date if exists, otherwise today
+  193 |             if (dateFilter.startDate) setViewDate(new Date(dateFilter.startDate));  react-hooks/set-state-in-effect
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/ErrorBoundary.jsx
+  9:37  error  'error' is defined but never used  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Header.jsx
+  53:13  error  'openModal' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                no-unused-vars
+  53:37  error  'setIsCopyGroupModalOpen' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/ImageSection.jsx
+  8:14  error  'e' is defined but never used  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/ImportModal.jsx
+    1:35  error    'useCallback' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                    no-unused-vars
+   12:9   error    'trades' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+   13:9   error    'formatCurrency' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                        no-unused-vars
+   31:8   warning  React Hook useEffect has a missing dependency: 'selectedAccountId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  133:27  error    'parts' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                 no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/NewTradeModal.jsx
+    19:138  error    'userProfile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+   164:11   error    'sessionSuggestions' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+   238:8    warning  React Hook useEffect has missing dependencies: 'accounts' and 'appSettings.defaultRiskPerc'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+   244:8    warning  React Hook useEffect has a missing dependency: 'formData.account_id'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+   276:17   error    Error: Cannot access variable before it is declared
+
+`handleSubmit` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  274 |             // Instant Commit Logic: Save if enabled, valid, and not editing
+  275 |             if (appSettings.autoSaveTrades && isTradeReady && !tradeToEdit && !hasSubmitted.current) {
+> 276 |                 handleSubmit({ preventDefault: () => { } });
+      |                 ^^^^^^^^^^^^ `handleSubmit` accessed before it is declared
+  277 |             }
+  278 |             setIsAnimating(false);
+  279 |             const timer = setTimeout(() => setIsVisible(false), 500);
+
+  314 |     };
+  315 |
+> 316 |     const handleSubmit = async (e) => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 317 |         if (e && e.preventDefault) e.preventDefault();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 318 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 493 |         isSubmitting.current = false;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 494 |     };
+      | ^^^^^^^ `handleSubmit` is declared here
+  495 |
+  496 |     // Consistency rule check: warn if a single day's profit exceeds the threshold
+  497 |     useEffect(() => {  react-hooks/immutability
+   282:8    warning  React Hook useEffect has missing dependencies: 'appSettings.autoSaveTrades', 'handleSubmit', 'isTradeReady', and 'tradeToEdit'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+   537:8    warning  React Hook useEffect has a missing dependency: 'tradeToEdit'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  1269:61   error    'soundEngine' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-undef
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/NotificationCenter.jsx
+  19:20  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  17 |
+  18 |     const getTimeAgo = (timestamp) => {
+> 19 |         const ms = Date.now() - new Date(timestamp).getTime();
+     |                    ^^^^^^^^^^ Cannot call impure function
+  20 |         const sec = Math.floor(ms / 1000);
+  21 |         if (sec < 60) return 'Just now';
+  22 |         const min = Math.floor(sec / 60);  react-hooks/purity
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/OverviewStats.jsx
+  1:17  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+  6:47  error  'stats' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u           no-unused-vars
+  6:67  error  'formatCurrency' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/PnLCard.jsx
+   3:63   error  'formatCurrency' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  43:110  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  41 |                 <div className="text-right">
+  42 |                     <p className="text-white/40 font-black text-sm uppercase tracking-[0.2em]">{displayDate}</p>
+> 43 |                     <p className="text-slate-600 font-mono text-[10px] uppercase tracking-widest mt-1">Ref: {Math.random().toString(36).substring(7).toUpperCase()}</p>
+     |                                                                                                              ^^^^^^^^^^^^^ Cannot call impure function
+  44 |                 </div>
+  45 |             </div>
+  46 |  react-hooks/purity
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Profile.jsx
+    74:9   error  'ranks' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  1138:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  1136 |     useEffect(() => {
+  1137 |         if (isOpen) {
+> 1138 |             setIsVisible(true);
+       |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1139 |             requestAnimationFrame(() => {
+  1140 |                 requestAnimationFrame(() => {
+  1141 |                     setIsAnimating(true);  react-hooks/set-state-in-effect
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/RecentTrades.jsx
+  5:10  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/Settings.jsx
+   10:81  error    'userProfile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                      no-unused-vars
+   10:94  error    'updateUserProfile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+   27:12  error    'updateInfo' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                       no-unused-vars
+   72:8   warning  React Hook useEffect has missing dependencies: 'showInfo' and 'showSuccess'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  138:18  error    'err' is defined but never used                                                                                                  no-unused-vars
+  238:22  error    'err' is defined but never used                                                                                                  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/SkeletonLoader.jsx
+  58:32  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  56 |                 <SkeletonBox
+  57 |                     key={i}
+> 58 |                     height={`${Math.random() * 50 + 20}%`}
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  59 |                     className="flex-1 rounded-t-lg"
+  60 |                 />
+  61 |             ))}  react-hooks/purity
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/UpdateSummaryModal.jsx
+  8:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   6 |
+   7 |     useEffect(() => {
+>  8 |         setIsAnimating(true);
+     |         ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+   9 |     }, []);
+  10 |
+  11 |     const handleClose = () => {  react-hooks/set-state-in-effect
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/WeeklySummaryModal.jsx
+  15:9   error  'trades' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u           no-unused-vars
+  16:9   error  'getAccountStats' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  17:9   error  'appSettings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u      no-unused-vars
+  22:9   error  't' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                no-unused-vars
+  71:15  error  'lossCount' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u        no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/components/modals/OutcomeModals.jsx
+    4:10  error  'useNotifications' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  287:40  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  285 |                             className={`absolute bg-white/20 rounded-full transition-all duration-[3000ms] ease-out ${step > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}`}
+  286 |                             style={{
+> 287 |                                 width: Math.random() * 3 + 1 + 'px',
+      |                                        ^^^^^^^^^^^^^ Cannot call impure function
+  288 |                                 height: Math.random() * 3 + 1 + 'px',
+  289 |                                 left: Math.random() * 100 + '%',
+  290 |                                 top: Math.random() * 100 + '%',             react-hooks/purity
+  288:41  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  286 |                             style={{
+  287 |                                 width: Math.random() * 3 + 1 + 'px',
+> 288 |                                 height: Math.random() * 3 + 1 + 'px',
+      |                                         ^^^^^^^^^^^^^ Cannot call impure function
+  289 |                                 left: Math.random() * 100 + '%',
+  290 |                                 top: Math.random() * 100 + '%',
+  291 |                                 filter: i % 2 === 0 ? 'blur(1px)' : 'none',                                                                                                                  react-hooks/purity
+  289:39  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  287 |                                 width: Math.random() * 3 + 1 + 'px',
+  288 |                                 height: Math.random() * 3 + 1 + 'px',
+> 289 |                                 left: Math.random() * 100 + '%',
+      |                                       ^^^^^^^^^^^^^ Cannot call impure function
+  290 |                                 top: Math.random() * 100 + '%',
+  291 |                                 filter: i % 2 === 0 ? 'blur(1px)' : 'none',
+  292 |                                 boxShadow: `0:0 20px ${i % 3 === 0 ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.4)'}`,                                react-hooks/purity
+  290:38  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  288 |                                 height: Math.random() * 3 + 1 + 'px',
+  289 |                                 left: Math.random() * 100 + '%',
+> 290 |                                 top: Math.random() * 100 + '%',
+      |                                      ^^^^^^^^^^^^^ Cannot call impure function
+  291 |                                 filter: i % 2 === 0 ? 'blur(1px)' : 'none',
+  292 |                                 boxShadow: `0:0 20px ${i % 3 === 0 ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.4)'}`,
+  293 |                                 animation: `float ${Math.random() * 10 + 10}s infinite linear`,      react-hooks/purity
+  293:53  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  291 |                                 filter: i % 2 === 0 ? 'blur(1px)' : 'none',
+  292 |                                 boxShadow: `0:0 20px ${i % 3 === 0 ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.4)'}`,
+> 293 |                                 animation: `float ${Math.random() * 10 + 10}s infinite linear`,
+      |                                                     ^^^^^^^^^^^^^ Cannot call impure function
+  294 |                                 animationDelay: `-${Math.random() * 20}s`
+  295 |                             }}
+  296 |                         />                                                          react-hooks/purity
+  294:53  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  292 |                                 boxShadow: `0:0 20px ${i % 3 === 0 ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.4)'}`,
+  293 |                                 animation: `float ${Math.random() * 10 + 10}s infinite linear`,
+> 294 |                                 animationDelay: `-${Math.random() * 20}s`
+      |                                                     ^^^^^^^^^^^^^ Cannot call impure function
+  295 |                             }}
+  296 |                         />
+  297 |                     ))}                                                                                                              react-hooks/purity
+  464:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  462 |     // Reset state for next account
+  463 |     useEffect(() => {
+> 464 |         setStep(0);
+      |         ^^^^^^^ Avoid calling setState() directly within an effect
+  465 |         setReport('');
+  466 |
+  467 |         // Restart animation sequence  react-hooks/set-state-in-effect
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/context/AIContext.jsx
+    1:67  error    'useMemo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                               no-unused-vars
+    7:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                               react-refresh/only-export-components
+   11:47  error    'appSettings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                  no-unused-vars
+  143:11  warning  The 'sendMessage' function makes the dependencies of useCallback Hook (at line 243) change on every render. To fix this, wrap the definition of 'sendMessage' in its own useCallback() Hook  react-hooks/exhaustive-deps
+  212:21  error    'soundEngine' is not defined                                                                                                                                                                 no-undef
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/context/AuthContext.jsx
+  6:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/context/NotificationContext.jsx
+   6:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-refresh/only-export-components
+  61:17  error    Error: Cannot access variable before it is declared
+
+`removeToast` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  59 |         if (newNotification.duration !== Infinity) {
+  60 |             setTimeout(() => {
+> 61 |                 removeToast(id);
+     |                 ^^^^^^^^^^^ `removeToast` accessed before it is declared
+  62 |             }, newNotification.duration);
+  63 |         }
+  64 |     }, []);
+
+  64 |     }, []);
+  65 |
+> 66 |     const removeToast = useCallback((id) => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 67 |         setToasts((prev) => prev.filter((n) => n.id !== id));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |     }, []);
+     | ^^^^^^^^^^^^ `removeToast` is declared here
+  69 |
+  70 |     const markAsRead = useCallback((id) => {
+  71 |         setHistory(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));  react-hooks/immutability
+  64:8   warning  React Hook useCallback has a missing dependency: 'removeToast'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/context/TradeContext.jsx
+    42:14   error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                  react-refresh/only-export-components
+    48:14   error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                  react-refresh/only-export-components
+   128:11   error    'losses' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                          no-unused-vars
+   323:8    warning  React Hook useEffect has missing dependencies: 'appSettings.soundEnabled' and 'appSettings.soundVolume'. Either include them or remove the dependency array                                                     react-hooks/exhaustive-deps
+   404:8    warning  React Hook useEffect has a missing dependency: 'loadInitialData'. Either include it or remove the dependency array                                                                                              react-hooks/exhaustive-deps
+   448:11   error    'normalizeDate' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                   no-unused-vars
+   502:8    warning  React Hook React.useMemo has a missing dependency: 'applyDateFilter'. Either include it or remove the dependency array                                                                                          react-hooks/exhaustive-deps
+   506:8    warning  React Hook useEffect has a missing dependency: 'calculateStats'. Either include it or remove the dependency array                                                                                               react-hooks/exhaustive-deps
+   606:29   error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                                                                       no-prototype-builtins
+   609:29   error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                                                                       no-prototype-builtins
+   614:29   error    Do not access Object.prototype method 'hasOwnProperty' from target object                                                                                                                                       no-prototype-builtins
+   756:17   error    'id' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                              no-unused-vars
+   945:8    warning  React Hook useEffect has missing dependencies: 'appSettings.cloudSync', 'syncProfileToCloud', and 'user'. Either include them or remove the dependency array                                                    react-hooks/exhaustive-deps
+   981:28   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1006:28   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1050:61   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1064:65   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1081:8    warning  React Hook useCallback has missing dependencies: 'syncCapabilities.advancedAccounts', 'syncCapabilities.advancedTrades', and 'syncCapabilities.copyGroups'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  1106:61   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1106:65   error    'created_at' is defined but never used                                                                                                                                                                          no-unused-vars
+  1121:57   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1121:61   error    'created_at' is defined but never used                                                                                                                                                                          no-unused-vars
+  1121:85   error    'account_name' is defined but never used                                                                                                                                                                        no-unused-vars
+  1121:99   error    'current_account_type' is defined but never used                                                                                                                                                                no-unused-vars
+  1121:121  error    'account_prop_firm' is defined but never used                                                                                                                                                                   no-unused-vars
+  1133:57   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1162:61   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1162:65   error    'created_at' is defined but never used                                                                                                                                                                          no-unused-vars
+  1178:61   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+  1178:65   error    'created_at' is defined but never used                                                                                                                                                                          no-unused-vars
+  1178:89   error    'account_name' is defined but never used                                                                                                                                                                        no-unused-vars
+  1178:103  error    'current_account_type' is defined but never used                                                                                                                                                                no-unused-vars
+  1178:125  error    'account_prop_firm' is defined but never used                                                                                                                                                                   no-unused-vars
+  1192:61   error    'id' is defined but never used                                                                                                                                                                                  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/utils/SoundEngine.js
+  72:18  error  'e' is defined but never used  no-unused-vars
+
+/Users/maxim/Dokumente_MAC/01_Projekte/Privat/Code/VSCode/core/src/utils/uiUtils.jsx
+   5:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-refresh/only-export-components
+  56:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  54 |         }
+  55 |
+> 56 |         setAdjustedStyles({
+     |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  57 |             position: 'fixed',
+  58 |             top: finalY,
+  59 |             left: finalX,  react-hooks/set-state-in-effect
+
+✖ 136 problems (113 errors, 23 warnings)
+

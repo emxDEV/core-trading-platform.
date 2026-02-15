@@ -34,7 +34,7 @@ const PnLCard = React.forwardRef(({ data, userProfile, stats, formatCurrency, fo
                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
                             <span className="text-white font-black text-xl italic mt-0.5">C</span>
                         </div>
-                        <h1 className="text-2xl font-black text-white tracking-[0.3em] uppercase italic">Core <span className="text-primary">Terminal</span></h1>
+                        <h1 className="text-2xl font-black text-white tracking-[0.3em] uppercase italic shimmer-text">Core <span className="text-primary">Terminal</span></h1>
                     </div>
                     <p className="text-slate-500 font-mono text-sm tracking-widest uppercase">Operational Performance Report</p>
                 </div>
@@ -49,7 +49,7 @@ const PnLCard = React.forwardRef(({ data, userProfile, stats, formatCurrency, fo
                 <div className="space-y-4">
                     <span className="text-slate-500 font-black text-lg uppercase tracking-[0.5em] italic ml-1">Daily Net Returns</span>
                     <div className="flex items-baseline gap-6">
-                        <h2 className={`text-[160px] font-black leading-none tracking-tighter ${isProfit ? 'text-emerald-400' : 'text-rose-500'}`} style={{ filter: `drop-shadow(0 0 40px ${isProfit ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'})` }}>
+                        <h2 className={`text-[160px] font-black leading-none tracking-tighter shimmer-text ${isProfit ? 'text-emerald-400' : 'text-rose-500'}`} style={{ filter: `drop-shadow(0 0 40px ${isProfit ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'})` }}>
                             {formatPnL(totalDailyPnL)}
                         </h2>
                     </div>
@@ -109,7 +109,7 @@ const PnLCard = React.forwardRef(({ data, userProfile, stats, formatCurrency, fo
                     <div className="flex items-center gap-10 pr-4">
                         <div className="text-right">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] block mb-2">System Version</span>
-                            <span className="text-white/20 font-mono text-xs">v1.0.7-PRO</span>
+                            <span className="text-white/20 font-mono text-xs">v1.1.9-PRO</span>
                         </div>
                     </div>
                 </div>
