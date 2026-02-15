@@ -109,7 +109,7 @@ const PnLCard = React.forwardRef(({ data, userProfile, stats, formatCurrency, fo
                     <div className="flex items-center gap-10 pr-4">
                         <div className="text-right">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] block mb-2">System Version</span>
-                            <span className="text-white/20 font-mono text-xs">v1.1.9-PRO</span>
+                            <span className="text-white/20 font-mono text-xs">v1.2.0-PRO</span>
                         </div>
                     </div>
                 </div>

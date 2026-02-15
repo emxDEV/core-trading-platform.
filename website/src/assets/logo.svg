@@ -1,0 +1,59 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="core_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7c5dfa" />
+            <stop offset="100%" stop-color="#5b21b6" />
+        </linearGradient>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="40" result="coloredBlur" />
+            <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+         <linearGradient id="bg_gradient" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stop-color="#1e1b2e" />
+            <stop offset="100%" stop-color="#0f0e17" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Background Container (Rounded Squircle/Hexagon Hybrid) -->
+    <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg_gradient)" />
+    
+    <!-- Outer Glow Ring -->
+    <path 
+        d="M512 200 L800 360 V664 L512 824 L224 664 V360 Z" 
+        fill="none" 
+        stroke="url(#core_gradient)" 
+        stroke-width="32" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        filter="url(#glow)"
+        opacity="0.6"
+    />
+
+    <!-- Main Hexagon Symbol -->
+    <path 
+        d="M512 200 L800 360 V664 L512 824 L224 664 V360 Z" 
+        fill="none" 
+        stroke="url(#core_gradient)" 
+        stroke-width="48" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+    />
+
+    <!-- Inner Data Pulse (Abstract Chart) -->
+    <path 
+        d="M360 600 L460 500 L540 580 L680 400" 
+        fill="none" 
+        stroke="#ffffff" 
+        stroke-width="32" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        opacity="0.9"
+    />
+    
+    <!-- Data Point Dot -->
+    <circle cx="680" cy="400" r="24" fill="#ffffff" />
+
+</svg>
