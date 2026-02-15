@@ -233,30 +233,78 @@ const Analytics = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Equity Curve */}
-                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-                        <div className="mb-6">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-xl">show_chart</span> Equity Curve
-                            </h3>
-                            <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Cumulative Performance</p>
+                    {/* Global Equity Curve */}
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border-primary/20">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                        <div className="mb-6 flex justify-between items-start">
+                            <div>
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-xl">account_balance_wallet</span> Fleet-wide Equity
+                                </h3>
+                                <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Unified Multi-Account Growth</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Total AUM P&L</span>
+                                <span className={`text-xl font-black italic tracking-tighter ${analytics.netPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {formatCurrency(analytics.netPnL)}
+                                </span>
+                            </div>
                         </div>
                         <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={analytics.equityCurve}>
+                                <AreaChart data={useMemo(() => {
+                                    const { allTrades } = useData();
+                                    const sorted = [...allTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+                                    let cum = 0;
+                                    return sorted.map(t => {
+                                        cum += (t.pnl || 0);
+                                        return { date: new Date(t.date).toLocaleDateString(), pnl: cum };
+                                    });
+                                }, [trades])}>
                                     <defs>
-                                        <linearGradient id="colorPnL" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="colorGlobal" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
                                             <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                                    <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val)} />
-                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px' }} formatter={(val) => [formatCurrency(val), 'Net Equity']} />
-                                    <Area type="monotone" dataKey="pnl" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorPnL)" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+                                    <XAxis dataKey="date" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val)} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px' }} formatter={(val) => [formatCurrency(val), 'Fleet P&L']} />
+                                    <Area type="monotone" dataKey="pnl" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorGlobal)" />
                                 </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Confluence Correlation Matrix */}
+                    <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-[45px] relative overflow-hidden group shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none" />
+                        <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-cyan-400 text-xl">Hub</span> Confluence Edge correlation
+                        </h3>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-6">Probability per Factor</p>
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={useMemo(() => {
+                                    const confs = {};
+                                    trades.forEach(t => {
+                                        if (!t.confluences) return;
+                                        t.confluences.split(',').forEach(c => {
+                                            const name = c.trim();
+                                            if (!name) return;
+                                            if (!confs[name]) confs[name] = { name, wins: 0, total: 0 };
+                                            if (t.pnl > 0) confs[name].wins++;
+                                            confs[name].total++;
+                                        });
+                                    });
+                                    return Object.values(confs).map(c => ({ name: c.name, score: (c.wins / c.total) * 100 })).sort((a, b) => b.score - a.score).slice(0, 6);
+                                }, [trades])}>
+                                    <PolarGrid stroke="#ffffff10" />
+                                    <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                                    <Radar name="Edge %" dataKey="score" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.3} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }} formatter={(val) => [`${val.toFixed(1)}%`, 'Probability']} />
+                                </RadarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>

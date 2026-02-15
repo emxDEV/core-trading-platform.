@@ -101,6 +101,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     ];
 
 
+
     // Form Validation Helpers
     const isNewAccountReady = useMemo(() => {
         const hasBaseFields = newAccountName.trim() !== '' && newAccountCapital !== '';
@@ -114,7 +115,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     }, [newAccountName, newAccountCapital, newAccountType, newAccountPropFirm, newAccountProfitTarget, newAccountMaxLoss]);
 
     const isTradeReady = useMemo(() => {
-        return formData.account_id !== '' && formData.date !== '' && formData.symbol !== '' && formData.pnl !== '';
+        return formData.account_id !== '' && formData.date !== '' && formData.symbol !== '' && (formData.pnl !== '' && formData.pnl !== null);
     }, [formData.account_id, formData.date, formData.symbol, formData.pnl]);
 
     const isEditAccountReady = useMemo(() => {
@@ -178,7 +179,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                 order_type: tradeToEdit.order_type || 'Market',
                 sl_pips: tradeToEdit.sl_pips || '',
                 risk_percent: tradeToEdit.risk_percent || '',
-                pnl: tradeToEdit.pnl || '',
+                pnl: (tradeToEdit.pnl !== undefined && tradeToEdit.pnl !== null) ? tradeToEdit.pnl : '',
                 psychology: tradeToEdit.psychology || '',
                 mistakes: tradeToEdit.mistakes || '',
                 sentiment_pre: tradeToEdit.sentiment_pre || '',
@@ -209,7 +210,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                 order_type: tradeToEdit?.order_type || 'Market',
                 sl_pips: tradeToEdit?.sl_pips || '',
                 risk_percent: tradeToEdit?.risk_percent || appSettings.defaultRiskPerc || '',
-                pnl: tradeToEdit?.pnl || '',
+                pnl: (tradeToEdit?.pnl !== undefined && tradeToEdit?.pnl !== null) ? tradeToEdit.pnl : '',
                 psychology: tradeToEdit?.psychology || '',
                 mistakes: tradeToEdit?.mistakes || '',
                 sentiment_pre: tradeToEdit?.sentiment_pre || '',
@@ -1055,6 +1056,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                     )}
                                                 </div>
                                             </div>
+
                                         </div>
 
                                     </div>
@@ -1278,29 +1280,23 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                                             key={star}
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, model: String(star) }))}
-                                                            className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all duration-300 transform active:scale-90 ${String(formData.model) === String(star)
-                                                                ? 'bg-amber-500/20 border-white/20 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                                                            className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all duration-300 transform active:scale-90 ${Number(formData.model) >= star
+                                                                ? 'bg-amber-500/20 border-amber-500/30 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                                                                 : 'bg-white/5 border-white/10 text-slate-600 hover:text-slate-400 hover:bg-white/10'}`}
                                                         >
-                                                            <span className={`material-symbols-outlined text-xl ${String(formData.model) === String(star) ? 'fill-1' : ''}`}>
-                                                                {String(formData.model) >= String(star) ? 'star' : 'star_border'}
+                                                            <span className={`material-symbols-outlined text-xl ${Number(formData.model) >= star ? 'fill-1' : ''}`}>
+                                                                {Number(formData.model) >= star ? 'star' : 'star_border'}
                                                             </span>
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 relative z-10">
+                                            <div className="grid grid-cols-1 gap-4 relative z-10">
                                                 <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/10 flex flex-col items-center text-center shadow-inner">
                                                     <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Setup Quality</div>
                                                     <div className="text-sm font-black text-white italic tracking-tighter uppercase whitespace-nowrap">
                                                         {String(formData.model) === '5' ? 'A+ PERFECT' : String(formData.model) === '4' ? 'B+ SOLID' : String(formData.model) === '3' ? 'C NEUTRAL' : String(formData.model) === '2' ? 'D SUBPAR' : String(formData.model) === '1' ? 'F TRASH' : 'UNRATED'}
-                                                    </div>
-                                                </div>
-                                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/10 flex flex-col items-center text-center shadow-inner">
-                                                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 font-mono">Discipline Protocol</div>
-                                                    <div className={`text-sm font-black italic tracking-tighter uppercase ${formData.mistakes ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                                        {formData.mistakes ? 'VIOLATED' : 'MAINTAINED'}
                                                     </div>
                                                 </div>
                                             </div>

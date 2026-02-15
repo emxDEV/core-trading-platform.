@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../context/TradeContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useState } from 'react';
 
 import lucidLogo from '../assets/firms/lucid_trading.png';
 import tradeifyLogo from '../assets/firms/tradeify.png';
@@ -222,6 +223,7 @@ export default function RecentTrades() {
                     </span>
                 </div>
             )}
+
         </div>
     );
 }

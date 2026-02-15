@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/TradeContext';
 import DateRangePicker from './DateRangePicker';
+import NotificationCenter from './NotificationCenter';
+import { useNotifications } from '../context/NotificationContext';
 
 const FilterDropdown = ({ label, options, active, onChange, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -49,7 +51,9 @@ const FilterDropdown = ({ label, options, active, onChange, icon }) => {
 
 export default function Header() {
     const { openModal, currentView, setIsCopyGroupModalOpen, setIsDailyPnLOpen, dateFilter, analyticsFilters, setAnalyticsFilters, accounts, t } = useData();
+    const { unreadCount } = useNotifications();
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
     const getLabel = () => {
         if (dateFilter.type === 'all') return 'All Time';
@@ -121,9 +125,21 @@ export default function Header() {
                     <span className="material-symbols-outlined text-[18px]">query_stats</span>
                     {t('daily_pnl')}
                 </button>
-                <button className="p-2 text-slate-400 hover:text-primary transition-colors">
-                    <span className="material-symbols-outlined">notifications</span>
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                        className={`p-2 transition-all duration-300 relative rounded-xl ${isNotificationOpen ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-primary hover:bg-white/5'}`}
+                    >
+                        <span className="material-symbols-outlined">notifications</span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_rgba(124,58,237,0.8)] animate-pulse" />
+                        )}
+                    </button>
+                    <NotificationCenter
+                        isOpen={isNotificationOpen}
+                        onClose={() => setIsNotificationOpen(false)}
+                    />
+                </div>
 
             </div>
         </header>

@@ -1429,7 +1429,51 @@ export const TradeProvider = ({ children }) => {
             syncProfileToCloud,
             isCommandCenterOpen, setIsCommandCenterOpen,
             isLoading, migrateToCloud, syncToCloud, importFromCloud, isSyncing,
-            supabase
+            supabase,
+            getGlobalEquityData: () => {
+                if (!trades.length) return [];
+                const sorted = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+                let cumulativePnL = 0;
+                return sorted.map(t => {
+                    cumulativePnL += (t.pnl || 0);
+                    return { date: t.date, pnl: cumulativePnL };
+                });
+            },
+            getModelPerformance: () => {
+                const modelStats = {};
+                trades.forEach(t => {
+                    if (!t.model) return;
+                    if (!modelStats[t.model]) {
+                        modelStats[t.model] = { name: t.model, pnl: 0, trades: 0, wins: 0 };
+                    }
+                    modelStats[t.model].pnl += (t.pnl || 0);
+                    modelStats[t.model].trades += 1;
+                    if (t.pnl > 0) modelStats[t.model].wins += 1;
+                });
+                return Object.values(modelStats).map(m => ({
+                    ...m,
+                    winRate: m.trades > 0 ? (m.wins / m.trades) * 100 : 0
+                })).sort((a, b) => b.pnl - a.pnl);
+            },
+            getConfluenceStats: () => {
+                const confStats = {};
+                trades.forEach(t => {
+                    if (!t.confluences) return;
+                    const confs = t.confluences.split(',').map(c => c.trim()).filter(Boolean);
+                    confs.forEach(c => {
+                        if (!confStats[c]) {
+                            confStats[c] = { name: c, pnl: 0, trades: 0, wins: 0 };
+                        }
+                        confStats[c].pnl += (t.pnl || 0);
+                        confStats[c].trades += 1;
+                        if (t.pnl > 0) confStats[c].wins += 1;
+                    });
+                });
+                return Object.values(confStats).map(c => ({
+                    ...c,
+                    winRate: c.trades > 0 ? (c.wins / c.trades) * 100 : 0
+                })).sort((a, b) => b.pnl - a.pnl);
+            }
         }}>
             {children}
         </TradeContext.Provider>

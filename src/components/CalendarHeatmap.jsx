@@ -10,6 +10,7 @@ const toLocalDateString = (date) => {
 const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
     const { appSettings, formatCurrency } = useData();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [heatmapMode, setHeatmapMode] = useState('pnl'); // 'pnl', 'volume', 'off'
 
     const selectedDateString = toLocalDateString(selectedDate);
 
@@ -17,6 +18,11 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
     const maxMagnitude = useMemo(() => {
         if (!data.length) return 1000;
         return Math.max(...data.map(d => Math.abs(d.pnl)), 1000);
+    }, [data]);
+
+    const maxCount = useMemo(() => {
+        if (!data.length) return 5;
+        return Math.max(...data.map(d => d.count), 5);
     }, [data]);
 
     const calendarDays = useMemo(() => {
@@ -98,11 +104,17 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
         return { totalPnL, winDays, lossDays, totalTrades };
     }, [calendarDays]);
 
-    const getIntensity = (pnl) => {
-        if (!pnl) return 0.05;
-        const magnitude = Math.abs(pnl);
-        const ratio = magnitude / maxMagnitude;
-        return 0.1 + (ratio * 0.4); // 10% to 50% opacity range
+    const getIntensity = (day) => {
+        if (heatmapMode === 'off') return 0;
+        if (!day.hasData) return 0.05;
+
+        if (heatmapMode === 'volume') {
+            const ratio = day.count / maxCount;
+            return 0.15 + (ratio * 0.5); // 15% to 65% opacity range
+        }
+
+        // PnL Mode - Uniform intensity
+        return 0.4;
     };
 
     return (
@@ -115,30 +127,52 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
 
             {/* Header Synchronization */}
             <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="text-left">
-                    <div className="flex items-center gap-2 mb-2.5">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Operational Performance</span>
-                    </div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none mb-3">
-                        Monthly <span className={`${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-glow`}>Snapshot</span>
-                    </h3>
-                    <div className="flex items-center gap-6">
-                        <div className="flex flex-col">
-                            <span className={`text-lg font-black tracking-tighter leading-none ${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {appSettings.maskBalances ? '••••••' : formatCurrency(monthStats.totalPnL)}
-                            </span>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Net Yield</span>
+                <div className="flex items-center gap-3">
+                    <div className="text-left">
+                        <div className="flex items-center gap-2 mb-2.5">
+                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Operational Performance</span>
                         </div>
-                        <div className="w-px h-8 bg-white/5" />
-                        <div className="flex flex-col">
-                            <div className="flex items-baseline gap-1.5 leading-none">
-                                <span className="text-sm font-black text-emerald-400">{monthStats.winDays}W</span>
-                                <span className="text-[10px] text-slate-600 font-black">/</span>
-                                <span className="text-sm font-black text-rose-400">{monthStats.lossDays}L</span>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none mb-3">
+                            Monthly <span className={`${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-glow`}>Snapshot</span>
+                        </h3>
+                        <div className="flex items-center gap-6">
+                            <div className="flex flex-col">
+                                <span className={`text-lg font-black tracking-tighter leading-none ${monthStats.totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {appSettings.maskBalances ? '••••••' : formatCurrency(monthStats.totalPnL)}
+                                </span>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Net Yield</span>
                             </div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Status Quo</span>
+                            <div className="w-px h-8 bg-white/5" />
+                            <div className="flex flex-col">
+                                <div className="flex items-baseline gap-1.5 leading-none">
+                                    <span className="text-sm font-black text-emerald-400">{monthStats.winDays}W</span>
+                                    <span className="text-[10px] text-slate-600 font-black">/</span>
+                                    <span className="text-sm font-black text-rose-400">{monthStats.lossDays}L</span>
+                                </div>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5 ml-0.5">Status Quo</span>
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Heatmap Mode Toggles */}
+                    <div className="flex bg-black/20 p-1 rounded-2xl border border-white/5 ml-4">
+                        {[
+                            { id: 'pnl', icon: 'payments', label: 'Performance' },
+                            { id: 'volume', icon: 'equalizer', label: 'Activity' }
+                        ].map(mode => (
+                            <button
+                                key={mode.id}
+                                onClick={() => setHeatmapMode(mode.id)}
+                                title={mode.label}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${heatmapMode === mode.id
+                                    ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                            >
+                                <span className="material-symbols-outlined text-lg">{mode.icon}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -176,7 +210,7 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
 
             <div className="grid grid-cols-7 gap-3 auto-rows-fr flex-1 relative z-10">
                 {calendarDays.map((day, i) => {
-                    const bgOpacity = getIntensity(day.pnl);
+                    const bgOpacity = getIntensity(day);
                     const isSelected = selectedDateString === day.dateString;
 
                     return (
@@ -185,10 +219,12 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                             onClick={() => day.isCurrentMonth && onDateSelect && onDateSelect(day.date)}
                             className={`relative rounded-[1.5rem] border transition-all duration-500 group/cell overflow-hidden min-h-[80px]
                                 ${!day.isCurrentMonth ? 'opacity-5 grayscale pointer-events-none' : 'cursor-pointer border-white/5'}
-                                ${day.hasData
-                                    ? (day.pnl > 0
-                                        ? `border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,${bgOpacity * 0.3})]`
-                                        : `border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,${bgOpacity * 0.3})]`)
+                                ${day.hasData && heatmapMode !== 'off'
+                                    ? (heatmapMode === 'volume'
+                                        ? `border-primary/40 shadow-[0_0_30px_rgba(124,58,237,${bgOpacity * 0.3})]`
+                                        : (day.pnl > 0
+                                            ? `border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,${bgOpacity * 0.3})]`
+                                            : `border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,${bgOpacity * 0.3})]`))
                                     : 'bg-white/[0.02] hover:bg-white/[0.05]'}
                                 ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10 scale-[1.03] z-20 shadow-[0_0_40px_rgba(99,102,241,0.2)]' : 'hover:scale-[1.02]'}
                                 ${day.isToday && !isSelected ? 'ring-1 ring-primary/40 p-0.5' : ''}
@@ -197,9 +233,9 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                             {/* Inner Content to handle the relative p-0.5 correctly for today */}
                             <div className="absolute inset-0 flex flex-col items-center justify-between p-4">
                                 {/* Heatmap Background layer */}
-                                {day.hasData && (
+                                {day.hasData && heatmapMode !== 'off' && (
                                     <div
-                                        className={`absolute inset-0 transition-opacity duration-700 ${day.pnl > 0 ? 'bg-gradient-to-br from-emerald-500/40 to-emerald-500/10' : 'bg-gradient-to-br from-rose-500/40 to-rose-500/10'}`}
+                                        className={`absolute inset-0 transition-opacity duration-700 ${heatmapMode === 'volume' ? 'bg-gradient-to-br from-primary/40 to-primary/10' : (day.pnl > 0 ? 'bg-gradient-to-br from-emerald-500/40 to-emerald-500/10' : 'bg-gradient-to-br from-rose-500/40 to-rose-500/10')}`}
                                         style={{ opacity: bgOpacity * 1.5 }}
                                     />
                                 )}

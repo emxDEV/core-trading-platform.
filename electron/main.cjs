@@ -1,14 +1,15 @@
-const { app, BrowserWindow, ipcMain, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, net, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const fs = require('fs');
 const DBManager = require('./db.cjs');
 
-// HARD FIX: Disable HTTP/2 to prevent ERR_HTTP2_PROTOCOL_ERROR and connection resets
+// HARD FIX: Disable HTTP/2
 app.commandLine.appendSwitch('disable-http2');
 
 const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production';
 
-// MULTI-INSTANCE SUPPORT: Allow running multiple accounts via --profile flag
+// MULTI-INSTANCE SUPPORT
 const profileArg = process.argv.find(arg => arg.startsWith('--profile='));
 const profileName = profileArg ? profileArg.split('=')[1] : null;
 
@@ -30,8 +31,6 @@ ipcMain.on('open-external-url', (event, url) => {
 ipcMain.handle('supabase-proxy', async (event, { url, options }) => {
     try {
         const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method?.toUpperCase());
-
-        // 1. STYLED HEADER FILTERING: Only essentials
         const safeHeaders = {
             'User-Agent': 'CORE-App/1.0',
             'Accept': 'application/json, text/plain, */*',
@@ -47,43 +46,25 @@ ipcMain.handle('supabase-proxy', async (event, { url, options }) => {
             Object.keys(options.headers).forEach(key => {
                 const lowerKey = key.toLowerCase();
                 if (allowedHeaders.includes(lowerKey)) {
-                    // CRITICAL: Clean value and ensure it's a string
                     let value = String(options.headers[key]).replace(/[\n\r]/g, '').trim();
                     safeHeaders[lowerKey] = value;
                 }
             });
         }
 
-        // 2. Prepare Body - Ensure it's a proper string if it's an object
         let requestBody = null;
         if (isMutation && options.body) {
-            requestBody = typeof options.body === 'string'
-                ? options.body
-                : JSON.stringify(options.body);
+            requestBody = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
         }
 
         const fetchOptions = {
             method: options.method || 'GET',
             headers: safeHeaders,
-            // Bypass any session-level cookies/cache that might bloat headers
             partition: 'supabase-session',
             ...(requestBody ? { body: requestBody } : {})
         };
 
-        // 3. LOGGING FOR DEBUGGING "Header Too Large"
-        let totalSize = 0;
-        Object.entries(safeHeaders).forEach(([k, v]) => totalSize += (k.length + v.length));
-
-        if (isDev) {
-            console.log(`[IPC Proxy 7.0] ${fetchOptions.method} ${url.slice(0, 50)}...`, {
-                headerSize: totalSize,
-                authLength: safeHeaders['authorization']?.length || 0,
-                hasBody: !!requestBody
-            });
-        }
-
         const response = await net.fetch(url, fetchOptions);
-
         const result = {
             status: response.status,
             statusText: response.statusText,
@@ -97,6 +78,7 @@ ipcMain.handle('supabase-proxy', async (event, { url, options }) => {
         return { error: error.message };
     }
 });
+
 // Manual Update Trigger
 ipcMain.handle('check-for-updates', async () => {
     if (!app.isPackaged) return { success: false, message: 'Not available in development mode' };
@@ -119,41 +101,28 @@ autoUpdater.logger.transports.file.level = 'info';
 function setupAutoUpdater() {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-
-    // Erlaube Updates auch wenn die Signaturprüfung fehlschlägt (wichtig für unsignierte macOS Apps)
-    if (process.platform === 'darwin') {
-        autoUpdater.forceDevUpdateConfig = false;
-    }
+    if (process.platform === 'darwin') autoUpdater.forceDevUpdateConfig = false;
 
     autoUpdater.on('checking-for-update', () => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'checking' }));
     });
-
     autoUpdater.on('update-available', (info) => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'available', info }));
     });
-
     autoUpdater.on('update-not-available', () => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'not-available' }));
     });
-
     autoUpdater.on('download-progress', (progress) => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'progress', progress }));
     });
-
     autoUpdater.on('update-downloaded', (info) => {
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'downloaded', info }));
     });
-
     autoUpdater.on('error', (err) => {
         console.error('Updater Error:', err);
         BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'error', message: err.message, error: err }));
     });
-
-    // Initial check
     autoUpdater.checkForUpdatesAndNotify();
-    // Check every hour
-    setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 60 * 60 * 1000);
 }
 
 function createWindow() {
@@ -169,7 +138,6 @@ function createWindow() {
             sandbox: true
         },
     });
-
 
     if (isDev) {
         win.loadURL('http://localhost:5173');
@@ -199,6 +167,26 @@ if (!gotTheLock) {
 
     app.whenReady().then(() => {
         db = new DBManager();
+
+        ipcMain.handle('save-image', async (event, { dataUrl, filename }) => {
+            try {
+                const { filePath } = await dialog.showSaveDialog({
+                    title: 'Save Legacy Image',
+                    defaultPath: filename || 'legacy-capture.png',
+                    filters: [{ name: 'Images', extensions: ['png'] }]
+                });
+                if (filePath) {
+                    let base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+                    await fs.promises.writeFile(filePath, Buffer.from(base64Data, 'base64'));
+                    return { success: true, filePath };
+                }
+                return { success: false, canceled: true };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+
         createWindow();
         if (app.isPackaged) setupAutoUpdater();
         app.on('activate', () => {
@@ -207,10 +195,8 @@ if (!gotTheLock) {
     });
 }
 
-// Handle Deep Link on macOS
 app.on('open-url', (event, url) => {
     event.preventDefault();
-    console.log('Main process received deep link (macOS):', url);
     const win = BrowserWindow.getAllWindows()[0];
     if (win) {
         if (win.isMinimized()) win.restore();
@@ -220,9 +206,7 @@ app.on('open-url', (event, url) => {
 });
 
 if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient('core-app', process.execPath, [path.resolve(process.argv[1])]);
-    }
+    if (process.argv.length >= 2) app.setAsDefaultProtocolClient('core-app', process.execPath, [path.resolve(process.argv[1])]);
 } else {
     app.setAsDefaultProtocolClient('core-app');
 }

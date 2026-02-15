@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { soundEngine } from '../utils/SoundEngine';
 
 const NotificationContext = createContext();
@@ -7,56 +7,98 @@ export const useNotifications = () => {
     return useContext(NotificationContext);
 };
 
+const STORAGE_KEY = 'core_notification_history';
+const MAX_HISTORY = 50;
+
 export const NotificationProvider = ({ children }) => {
-    const [notifications, setNotifications] = useState([]);
+    const [toasts, setToasts] = useState([]);
+    const [history, setHistory] = useState(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    // Save history to localStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    }, [history]);
 
     const addNotification = useCallback((notification) => {
         const id = Date.now();
+        const config = typeof notification === 'string' ? { message: notification } : notification;
+
         const newNotification = {
             id,
-            type: notification.type || 'info', // success, error, info, warning
-            message: notification.message,
-            duration: notification.duration || 5000,
-            action: notification.action, // { label: string, onClick: function }
-            native: notification.native || false,
+            type: config.type || 'info', // success, error, info, warning
+            message: config.message,
+            duration: config.duration || 5000,
+            action: config.action, // { label: string, onClick: function }
+            native: config.native || false,
+            timestamp: new Date().toISOString(),
+            isRead: false
         };
 
-        setNotifications((prev) => [...prev, newNotification]);
+        // Add to active toasts
+        setToasts((prev) => [...prev, newNotification]);
 
-        // Native OS Notification if requested or high priority
+        // Add to history (limit size)
+        setHistory((prev) => {
+            const updated = [newNotification, ...prev];
+            return updated.slice(0, MAX_HISTORY);
+        });
+
+        // Native OS Notification if requested
         if (newNotification.native) {
-            new Notification('core', {
-                body: newNotification.message,
-                icon: '/logo.png' // Adjust path if needed
-            });
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification('CORE Registry', {
+                    body: newNotification.message,
+                    icon: '/logo.png'
+                });
+            }
         }
 
         if (newNotification.duration !== Infinity) {
             setTimeout(() => {
-                removeNotification(id);
+                removeToast(id);
             }, newNotification.duration);
         }
     }, []);
 
-    const removeNotification = useCallback((id) => {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const removeToast = useCallback((id) => {
+        setToasts((prev) => prev.filter((n) => n.id !== id));
     }, []);
+
+    const markAsRead = useCallback((id) => {
+        setHistory(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    }, []);
+
+    const markAllAsRead = useCallback(() => {
+        setHistory(prev => prev.map(n => ({ ...n, isRead: true })));
+    }, []);
+
+    const clearHistory = useCallback(() => {
+        setHistory([]);
+    }, []);
+
+    const unreadCount = useMemo(() => history.filter(n => !n.isRead).length, [history]);
 
     const showSuccess = useCallback((content) => {
         soundEngine.playSuccess();
         const config = typeof content === 'string' ? { message: content } : content;
         addNotification({ ...config, type: 'success' });
     }, [addNotification]);
+
     const showError = useCallback((content) => {
         soundEngine.playError();
         const config = typeof content === 'string' ? { message: content } : content;
         addNotification({ ...config, type: 'error' });
     }, [addNotification]);
+
     const showInfo = useCallback((content) => {
         soundEngine.playNotification();
         const config = typeof content === 'string' ? { message: content } : content;
         addNotification({ ...config, type: 'info' });
     }, [addNotification]);
+
     const showWarning = useCallback((content) => {
         soundEngine.playNotification();
         const config = typeof content === 'string' ? { message: content } : content;
@@ -86,9 +128,14 @@ export const NotificationProvider = ({ children }) => {
 
     return (
         <NotificationContext.Provider value={{
-            notifications,
+            notifications: toasts, // Maintain legacy naming for Toaster
+            history,
+            unreadCount,
             addNotification,
-            removeNotification,
+            removeNotification: removeToast,
+            markAsRead,
+            markAllAsRead,
+            clearHistory,
             showSuccess,
             showError,
             showInfo,
@@ -105,9 +152,7 @@ const ConfirmModal = ({ title, message, confirmText, cancelText, type, onConfirm
     return (
         <div className="fixed inset-0 z-[200000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in fade-in duration-500">
             <div className="relative w-full max-w-sm">
-                {/* Glow Effect */}
                 <div className={`absolute -inset-4 blur-3xl opacity-20 rounded-[3rem] animate-pulse ${type === 'danger' ? 'bg-rose-500' : 'bg-primary'}`} />
-
                 <div className="relative bg-[#0F172A]/80 border border-white/10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] backdrop-blur-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
                     <div className="p-10 text-center">
                         <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-6 transition-transform duration-500 hover:scale-110 ${type === 'danger' ? 'bg-rose-500/20 border border-rose-500/30' : 'bg-primary/20 border border-primary/30'}`}>
@@ -118,7 +163,6 @@ const ConfirmModal = ({ title, message, confirmText, cancelText, type, onConfirm
                         <h3 className="text-2xl font-black text-white mb-3 tracking-tight">{title}</h3>
                         <p className="text-slate-400 text-sm leading-relaxed font-medium px-2">{message}</p>
                     </div>
-
                     <div className="flex gap-1 p-3 pt-0">
                         <button
                             onClick={onCancel}
