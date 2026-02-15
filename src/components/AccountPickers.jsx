@@ -198,7 +198,10 @@ export const AccountPicker = ({ selectedId, onSelect, isOpen, setOpen, onAddAcco
                                             </div>
                                         )}
                                     </div>
-                                    <span className="text-[10px] uppercase tracking-wider opacity-50 ml-auto">{acc.type}</span>
+                                    <span className={`font-black uppercase tracking-tight ${isCurrent ? 'text-white' : 'text-slate-300'} ${isBreached ? 'line-through opacity-50' : ''}`}>
+                                        {acc.name}
+                                    </span>
+                                    <span className="text-[10px] uppercase tracking-wider opacity-50 ml-auto font-black">{acc.type}</span>
                                     {isCurrent && <span className="material-symbols-outlined text-[14px] text-emerald-400">check</span>}
                                 </button>
                             );

@@ -118,12 +118,29 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
     };
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col h-full group hover:border-primary/40 transition-all duration-700">
-            {/* Glass Reflection Highlight */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-            {/* Background Glows */}
-            <div className="absolute top-0 left-0 w-48 h-48 bg-primary/5 blur-[100px] rounded-full -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[120px] rounded-full translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="bg-slate-950/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative flex flex-col h-full group hover:border-primary/40 transition-all duration-700">
+            {/* Cosmic Background Context Wrapper */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                {/* Mesh Gradients */}
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-mesh-1 mix-blend-screen" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/10 blur-[140px] rounded-full animate-mesh-2 mix-blend-screen" />
+                <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-violet-500/10 blur-[100px] rounded-full animate-mesh-3" />
+
+                {/* Cosmic Grid Pattern */}
+                <div className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+                        backgroundSize: '24px 24px'
+                    }}
+                />
+
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent" />
+
+                {/* Background Glows (Reactive) */}
+                <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 blur-[120px] rounded-full -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 select-none" />
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-500/10 blur-[140px] rounded-full translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 select-none" />
+            </div>
 
             {/* Header Synchronization */}
             <div className="flex items-center justify-between mb-6 relative z-10">
@@ -221,15 +238,16 @@ const CalendarHeatmap = ({ data = [], onDateSelect, selectedDate }) => {
                                 ${!day.isCurrentMonth ? 'opacity-5 grayscale pointer-events-none' : 'cursor-pointer border-white/5'}
                                 ${day.hasData && heatmapMode !== 'off'
                                     ? (heatmapMode === 'volume'
-                                        ? `border-primary/40 shadow-[0_0_30px_rgba(124,58,237,${bgOpacity * 0.3})]`
+                                        ? `border-primary/40 shadow-[0_0_30px_rgba(124,58,237,${bgOpacity * 0.2})]`
                                         : (day.pnl > 0
-                                            ? `border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,${bgOpacity * 0.3})]`
-                                            : `border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,${bgOpacity * 0.3})]`))
-                                    : 'bg-white/[0.02] hover:bg-white/[0.05]'}
-                                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10 scale-[1.03] z-20 shadow-[0_0_40px_rgba(99,102,241,0.2)]' : 'hover:scale-[1.02]'}
+                                            ? `border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,${bgOpacity * 0.2})]`
+                                            : `border-rose-500/30 shadow-[0_0_30px_rgba(244,63,94,${bgOpacity * 0.2})]`))
+                                    : 'bg-white/[0.01] hover:bg-white/[0.04]'}
+                                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/20 scale-[1.03] z-20 shadow-[0_0_50px_rgba(99,102,241,0.3)]' : 'hover:scale-[1.02]'}
                                 ${day.isToday && !isSelected ? 'ring-1 ring-primary/40 p-0.5' : ''}
                             `}
                         >
+
                             {/* Inner Content to handle the relative p-0.5 correctly for today */}
                             <div className="absolute inset-0 flex flex-col items-center justify-between p-4">
                                 {/* Heatmap Background layer */}

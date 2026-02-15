@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function AppBackground() {
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 animate-float-bg">
             {/* Dark/Light Base */}
             <div className="absolute inset-0 bg-slate-50 dark:bg-[#020617] transition-colors duration-700" />
 

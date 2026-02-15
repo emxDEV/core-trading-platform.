@@ -71,8 +71,8 @@ const Toast = ({ notification, onClose }) => {
             `}
             style={{ width: '380px' }}
         >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.bg} border ${config.border} shrink-0`}>
-                <span className={`material-symbols-outlined text-[24px] ${config.color}`}>{config.icon}</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.bg} border ${config.border} shrink-0 shadow-lg`}>
+                <span className={`material-symbols-outlined text-[24px] ${config.color} drop-shadow-glow`}>{config.icon}</span>
             </div>
 
             <div className="flex-1 min-w-0">

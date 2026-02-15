@@ -17,11 +17,15 @@ import AuthPage from './components/AuthPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import AppTutorial from './components/AppTutorial';
 import LoadingScreen from './components/LoadingScreen';
+import AIAgentPanel from './components/AIAgentPanel';
+import DailyJournal from './components/DailyJournal';
 
+import { AIProvider } from './context/AIContext';
 import Calendar from './components/Calendar';
 import TitleBar from './components/TitleBar';
 import ErrorBoundary from './components/ErrorBoundary';
 import UpdateSummaryModal from './components/UpdateSummaryModal';
+import WeeklySummaryModal from './components/WeeklySummaryModal';
 import pkg from '../package.json';
 
 import { useShortcuts } from './hooks/useShortcuts';
@@ -137,35 +141,39 @@ function AuthGate() {
 
   return (
     <TradeProvider>
-      <TitleBar />
-      <ShortcutManager />
-      <MainContent />
-      <GlobalModal />
-      <UpgradeContainer />
-      {needsTutorial && (
-        <AppTutorial
-          userName={profileName}
-          onComplete={() => {
-            localStorage.setItem(`tutorial_complete_${user.id}`, 'true');
-            setNeedsTutorial(false);
-          }}
-        />
-      )}
-      {showUpdateModal && (
-        <UpdateSummaryModal
-          version={APP_VERSION}
-          onClose={() => {
-            localStorage.setItem(`last_seen_version_${user.id}`, APP_VERSION);
-            setShowUpdateModal(false);
-          }}
-        />
-      )}
+
+      <AIProvider>
+        <TitleBar />
+        <ShortcutManager />
+        <MainContent />
+        <GlobalModal />
+        <UpgradeContainer />
+        <WeeklyTrigger />
+        {needsTutorial && (
+          <AppTutorial
+            userName={profileName}
+            onComplete={() => {
+              localStorage.setItem(`tutorial_complete_${user.id}`, 'true');
+              setNeedsTutorial(false);
+            }}
+          />
+        )}
+        {showUpdateModal && (
+          <UpdateSummaryModal
+            version={APP_VERSION}
+            onClose={() => {
+              localStorage.setItem(`last_seen_version_${user.id}`, APP_VERSION);
+              setShowUpdateModal(false);
+            }}
+          />
+        )}
+      </AIProvider>
     </TradeProvider>
   );
 }
 
 function ShortcutManager() {
-  const { setCurrentView, openModal, closeModal, isModalOpen, setIsDailyPnLOpen, setIsCommandCenterOpen, appSettings } = useData();
+  const { setCurrentView, openModal, closeModal, isModalOpen, setIsDailyPnLOpen, setIsCommandCenterOpen, appSettings, setIsDailyJournalOpen } = useData();
 
   useShortcuts({
     onNewTrade: () => {
@@ -213,8 +221,6 @@ function MainContent() {
   );
 }
 
-import DailyJournal from './components/DailyJournal';
-
 function GlobalModal() {
   const { isModalOpen, closeModal, tradeToEdit, isDailyPnLOpen, setIsDailyPnLOpen, isDailyJournalOpen } = useData();
   return (
@@ -223,9 +229,44 @@ function GlobalModal() {
       <DailyPnLModal isOpen={isDailyPnLOpen} onClose={() => setIsDailyPnLOpen(false)} />
       <CommandCenter />
       <DailyJournal />
+      <WeeklySummaryModal />
       <ImportModal />
+      <AIAgentPanel />
     </>
   );
+}
+
+function WeeklyTrigger() {
+  const { user } = useAuth();
+  const { weeklySummaries, i18n, setIsWeeklySummaryOpen } = useData();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const now = new Date();
+    // 0 is Sunday
+    if (now.getDay() === 0) {
+      // Find the Monday of this week
+      const startOfWeek = new Date(now);
+      startOfWeek.setHours(0, 0, 0, 0);
+      // We want the Monday. If today is Sunday (0), we go back 6 days.
+      startOfWeek.setDate(now.getDate() - 6);
+      const weekStartStr = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`;
+
+      // Check if already completed for this week
+      const summary = weeklySummaries.find(s => s.week_start === weekStartStr);
+
+      // Check if shown in this session (to avoid annoying popups on every refresh)
+      const lastShown = sessionStorage.getItem(`weekly_summary_shown_${user.id}_${weekStartStr}`);
+
+      if (!summary?.is_completed && !lastShown) {
+        setIsWeeklySummaryOpen(weekStartStr);
+        sessionStorage.setItem(`weekly_summary_shown_${user.id}_${weekStartStr}`, 'true');
+      }
+    }
+  }, [user, weeklySummaries]);
+
+  return null;
 }
 
 export default App;

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useData } from '../context/TradeContext';
 import PillInput from './PillInput';
 import { useNotifications } from '../context/NotificationContext';
+import { useAI } from '../context/AIContext';
 
 // New Imports
 import { SmartPortal, ValidationTooltip } from '../utils/uiUtils';
@@ -16,6 +17,7 @@ import { CelebrationModal, BreachModal, PayoutGoalModal } from './modals/Outcome
 
 export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     const { addTrade, updateTrade, updateAccount, deleteAccount, accounts, addAccount, trades, getAccountStats, copyGroups, appSettings, userProfile } = useData();
+    const { suggestMistakes, isThinking: isAiThinking } = useAI();
     const { showSuccess, showError, showWarning, confirm } = useNotifications();
     const [isVisible, setIsVisible] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -162,6 +164,13 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
     const sessionSuggestions = useMemo(() => {
         const unique = [...new Set(trades.map(t => t.trade_session).filter(Boolean))];
         return unique.length > 0 ? unique.sort() : ['London', 'New York', 'Asia'];
+    }, [trades]);
+
+    const mistakeSuggestions = useMemo(() => {
+        const all = trades.flatMap(t =>
+            (t.mistakes || '').split(',').map(s => s.trim()).filter(Boolean)
+        );
+        return [...new Set(all)].sort();
     }, [trades]);
 
     useEffect(() => {
@@ -553,14 +562,17 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                     onClick={onClose}
                 >
                     <div
-                        className={`bg-slate-900/40 backdrop-blur-[45px] rounded-[3.5rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-white/10 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform relative overflow-hidden ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
+                        className={`bg-slate-900/40 backdrop-blur-[45px] rounded-[3.5rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-white/10 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform relative ${isAnimating ? 'scale-100 translate-y-0 opacity-100 blur-0' : 'scale-[0.9] translate-y-20 opacity-0 blur-2xl'}`}
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Glass Reflection Highlight */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+                        {/* Background Layer with Overflow Clipping for Glass Effects */}
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[3.5rem]">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent" />
+                            <div className="absolute inset-0 bg-primary/5 opacity-30 blur-[60px]" />
+                        </div>
+
                         {/* Header - Tactical Execution */}
-                        <div className="flex justify-between items-center px-12 pt-12 pb-8 relative overflow-hidden">
-                            <div className="absolute inset-0 bg-primary/5 opacity-30 blur-[60px] -z-10" />
+                        <div className="flex justify-between items-center px-12 pt-12 pb-8 relative">
                             <div className="flex items-center gap-6">
                                 <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg shadow-primary/10">
                                     <span className="material-symbols-outlined text-primary text-[36px] drop-shadow-glow">
@@ -584,7 +596,7 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                         </div>
 
                         {/* Tabs - Command Navigation */}
-                        <div className="flex px-12 gap-1 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar bg-white/[0.02]">
+                        <div className="flex px-12 gap-1 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar bg-white/[0.02] relative">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
@@ -1164,7 +1176,9 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
                                 {activeTab === 'psychology' && (
                                     <div className="space-y-6">
-                                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] overflow-hidden p-8 space-y-8">
+                                        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-8 space-y-8 relative">
+                                            {/* Background Layer for rounded corner clipping of highlights */}
+                                            <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none" />
                                             {/* Pre-Trade Sentiment */}
                                             <div>
                                                 <div className="flex items-center gap-3 mb-6">
@@ -1239,20 +1253,50 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
 
                                             {/* Mistakes Block */}
                                             <div className="group/text">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-                                                        <span className="material-symbols-outlined text-[18px] text-rose-400 group-focus-within/text:drop-shadow-glow">error</span>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[18px] text-rose-400 group-focus-within/text:drop-shadow-glow">error</span>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Operational Mistakes</span>
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Operational Mistakes</span>
+
+                                                    {/* Neural Suggest Button */}
+                                                    <button
+                                                        type="button"
+                                                        disabled={isAiThinking || (!formData.psychology && !formData.comment_execution)}
+                                                        onClick={async () => {
+                                                            soundEngine.playClick();
+                                                            const notes = `${formData.psychology} ${formData.comment_execution}`.trim();
+                                                            const suggested = await suggestMistakes(notes);
+                                                            if (suggested && suggested.length > 0) {
+                                                                const currentMistakes = formData.mistakes ? formData.mistakes.split(',').map(s => s.trim()) : [];
+                                                                const newMistakes = [...new Set([...currentMistakes, ...suggested])];
+                                                                setFormData(prev => ({ ...prev, mistakes: newMistakes.join(', ') }));
+                                                                showSuccess(`Neural Link identified ${suggested.length} behavior patterns`);
+                                                            } else {
+                                                                showWarning("Neural Link found no distinct mistake patterns in your notes.");
+                                                            }
+                                                        }}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-black uppercase tracking-widest ${isAiThinking
+                                                            ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 animate-pulse'
+                                                            : 'bg-white/5 border-white/10 text-slate-500 hover:border-purple-500/40 hover:text-purple-400'
+                                                            }`}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[14px]">psychology</span>
+                                                        {isAiThinking ? 'Analyzing...' : 'Neural Suggest'}
+                                                    </button>
                                                 </div>
-                                                <textarea
-                                                    name="mistakes"
-                                                    rows="3"
-                                                    placeholder="Any protocol deviations or rule violations?"
+
+                                                <PillInput
                                                     value={formData.mistakes}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-slate-900/40 rounded-2xl border border-white/10 p-5 focus:outline-none focus:ring-4 focus:ring-rose-500/10 text-white text-sm leading-relaxed resize-none placeholder-slate-700 transition-all shadow-inner"
-                                                ></textarea>
+                                                    onChange={(val) => setFormData(prev => ({ ...prev, mistakes: val }))}
+                                                    suggestions={mistakeSuggestions}
+                                                    placeholder="Behavioral tags (e.g. FOMO, Over-leveraged)..."
+                                                    allowMultiple={true}
+                                                    category="mistakes"
+                                                    defaultColor="rose"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1302,9 +1346,11 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
                                         </div>
 
-                                        <div className="rounded-[2.5rem] border border-white/10 bg-slate-900/40 relative overflow-hidden shadow-inner group/notes">
-                                            {/* Glass Reflection Highlight */}
-                                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                        <div className="rounded-[2.5rem] border border-white/10 bg-slate-900/40 relative shadow-inner group/notes">
+                                            {/* Background Layer with Overflow Clipping */}
+                                            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+                                            </div>
                                             {/* Bias Block */}
                                             <div className="border-b border-white/5 group/text">
                                                 <div className="flex items-center justify-between px-8 pt-6 pb-3">
@@ -1416,11 +1462,13 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 gap-8">
                                             {/* Category 1: Execution */}
-                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
-                                                {/* Glass Reflection Highlight */}
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
-                                                    <span className="material-symbols-outlined text-[120px]">target</span>
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach relative shadow-inner">
+                                                {/* Background Layer with Overflow Clipping */}
+                                                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent" />
+                                                    <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover/attach:opacity-10">
+                                                        <span className="material-symbols-outlined text-[120px]">target</span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center justify-between mb-6 relative z-10">
                                                     <div className="flex items-center gap-3">
@@ -1438,11 +1486,13 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 2: Condition */}
-                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
-                                                {/* Glass Reflection Highlight */}
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
-                                                    <span className="material-symbols-outlined text-[120px]">analytics</span>
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach relative shadow-inner">
+                                                {/* Background Layer with Overflow Clipping */}
+                                                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent" />
+                                                    <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover/attach:opacity-10">
+                                                        <span className="material-symbols-outlined text-[120px]">analytics</span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center justify-between mb-6 relative z-10">
                                                     <div className="flex items-center gap-3">
@@ -1460,11 +1510,13 @@ export default function NewTradeModal({ isOpen, onClose, tradeToEdit = null }) {
                                             </div>
 
                                             {/* Category 3: Narrative */}
-                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach overflow-hidden relative shadow-inner">
-                                                {/* Glass Reflection Highlight */}
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-                                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none transition-opacity group-hover/attach:opacity-10">
-                                                    <span className="material-symbols-outlined text-[120px]">auto_stories</span>
+                                            <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] p-8 group/attach relative shadow-inner">
+                                                {/* Background Layer with Overflow Clipping */}
+                                                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent" />
+                                                    <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover/attach:opacity-10">
+                                                        <span className="material-symbols-outlined text-[120px]">auto_stories</span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center justify-between mb-6 relative z-10">
                                                     <div className="flex items-center gap-3">

@@ -201,6 +201,27 @@ if (!gotTheLock) {
 
         createWindow();
         if (app.isPackaged) setupAutoUpdater();
+
+        // [PERMISSION FIX] Explicitly request Mic access on Mac
+        if (process.platform === 'darwin') {
+            try {
+                const { systemPreferences } = require('electron');
+                systemPreferences.askForMediaAccess('microphone').then(access => {
+                    console.log(`[Permission] Microphone access ${access ? 'granted' : 'denied'}`);
+                });
+            } catch (e) {
+                console.error('[Permission] Failed to prompt for media access:', e);
+            }
+        }
+
+        ipcMain.handle('request-mic-permission', async () => {
+            if (process.platform === 'darwin') {
+                const { systemPreferences } = require('electron');
+                return await systemPreferences.askForMediaAccess('microphone');
+            }
+            return true; // Assume true for others (or handled by browser)
+        });
+
         app.on('activate', () => {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });

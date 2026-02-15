@@ -73,8 +73,8 @@ const LoadingScreen = () => {
             </div>
 
             {/* Version Number */}
-            <div className="absolute bottom-8 text-[10px] text-slate-700 font-mono">
-                v1.0.5 SYSTEM REVISION
+            <div className="absolute bottom-8 text-[10px] text-slate-700 font-mono tracking-[0.2em] opacity-50">
+                v1.1.9 SYSTEM REVISION
             </div>
         </div>
     );

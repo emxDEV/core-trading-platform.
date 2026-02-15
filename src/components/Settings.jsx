@@ -241,6 +241,13 @@ export default function Settings() {
         }
     };
 
+    const [tempGeminiKey, setTempGeminiKey] = useState(localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
+    const handleSaveGeminiKey = () => {
+        localStorage.setItem('gemini_api_key', tempGeminiKey);
+        showSuccess('Neural Key synchronized successfully.');
+        soundEngine.playSuccess();
+    };
+
     return (
         <div className="max-w-7xl mx-auto py-8 px-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
             <ViewHeader
@@ -379,6 +386,50 @@ export default function Settings() {
                             </div>
                         </div>
                     </div>
+
+                    {/* AI Configuration Block */}
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] mt-4">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-sm">
+                                <span className="material-symbols-outlined text-purple-500 text-[24px]">psychology</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight uppercase tracking-widest leading-none">AI Intelligence Engine</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Configure your neural network connection</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800/60 rounded-2xl p-8 space-y-4">
+                                <div>
+                                    <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em] mb-1">Gemini API Token</h4>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Required for fact-based trade analysis</p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <input
+                                        type="password"
+                                        value={tempGeminiKey}
+                                        onChange={(e) => setTempGeminiKey(e.target.value)}
+                                        className="flex-1 bg-white dark:bg-slate-800 px-6 py-4 rounded-xl border border-slate-200 dark:border-white/5 text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:border-primary/50 transition-all"
+                                        placeholder="Enter your Gemini API key..."
+                                    />
+                                    <button
+                                        onClick={handleSaveGeminiKey}
+                                        className="px-8 py-4 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                                    >
+                                        Save Key
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                                    <span className="material-symbols-outlined text-slate-500 text-sm">info</span>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">
+                                        Your key is stored locally and used only for analysis queries.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Sidebar Settings Area */}
@@ -417,7 +468,7 @@ export default function Settings() {
                     </div>
 
                     {/* Localization */}
-                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] space-y-8">
+                    <div className="bg-slate-900/40 backdrop-blur-[45px] border border-white/10 rounded-[2.5rem] p-8 relative shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] space-y-8">
                         {/* Glass Reflection Highlight */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
                         <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] px-2 opacity-50 italic">{t('localization')}</h4>

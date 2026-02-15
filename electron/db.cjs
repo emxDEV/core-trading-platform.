@@ -57,11 +57,9 @@ class DBManager {
                 { col: 'reset_date', sql: 'ALTER TABLE accounts ADD COLUMN reset_date TEXT' },
                 { col: 'breach_report', sql: 'ALTER TABLE accounts ADD COLUMN breach_report TEXT' },
                 { col: 'is_ranked_up', sql: 'ALTER TABLE accounts ADD COLUMN is_ranked_up INTEGER DEFAULT 0' },
-                { col: 'is_ranked_up', sql: 'ALTER TABLE accounts ADD COLUMN is_ranked_up INTEGER DEFAULT 0' },
                 { col: 'prev_reset_date', sql: 'ALTER TABLE accounts ADD COLUMN prev_reset_date TEXT' },
                 { col: 'payout_goal', sql: 'ALTER TABLE accounts ADD COLUMN payout_goal REAL DEFAULT 0' },
                 { col: 'user_id', sql: 'ALTER TABLE accounts ADD COLUMN user_id TEXT' },
-                { col: 'user_id', sql: 'ALTER TABLE pill_colors ADD COLUMN user_id TEXT' } // Just in case, try adding to pill_colors if possible
             ];
 
             for (const m of migrations) {
@@ -249,6 +247,20 @@ class DBManager {
                 )
             `;
             this.db.exec(createDailyJournalsTable);
+
+            // 9. Weekly Summaries Table
+            const createWeeklySummariesTable = `
+                CREATE TABLE IF NOT EXISTS weekly_summaries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT,
+                    week_start TEXT NOT NULL,
+                    reflection TEXT,
+                    is_completed INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, week_start)
+                )
+            `;
+            this.db.exec(createWeeklySummariesTable);
 
             // Re-enable global foreign keys
             this.db.pragma('foreign_keys = ON');
@@ -799,6 +811,41 @@ class DBManager {
                     goals: typeof journal.goals === 'string' ? journal.goals : JSON.stringify(journal.goals),
                     reflection: journal.reflection || '',
                     is_completed: journal.is_completed ? 1 : 0
+                };
+                stmt.run(data);
+                return { success: true };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+        // Weekly Summary Handlers
+        ipcMain.handle('db-get-weekly-summaries', (event, userId) => {
+            try {
+                const sql = userId
+                    ? 'SELECT * FROM weekly_summaries WHERE user_id = ? ORDER BY week_start DESC'
+                    : 'SELECT * FROM weekly_summaries WHERE user_id IS NULL ORDER BY week_start DESC';
+                const stmt = this.db.prepare(sql);
+                return { success: true, data: userId ? stmt.all(userId) : stmt.all() };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+        ipcMain.handle('db-save-weekly-summary', (event, summary) => {
+            try {
+                const stmt = this.db.prepare(`
+                    INSERT INTO weekly_summaries (user_id, week_start, reflection, is_completed)
+                    VALUES (@user_id, @week_start, @reflection, @is_completed)
+                    ON CONFLICT(user_id, week_start) DO UPDATE SET
+                        reflection = @reflection,
+                        is_completed = @is_completed
+                `);
+                const data = {
+                    user_id: summary.user_id || null,
+                    week_start: summary.week_start,
+                    reflection: summary.reflection || '',
+                    is_completed: summary.is_completed ? 1 : 0
                 };
                 stmt.run(data);
                 return { success: true };

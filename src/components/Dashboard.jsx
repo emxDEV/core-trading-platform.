@@ -196,7 +196,7 @@ export default function Dashboard() {
                             : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/[0.07]'
                             }`}
                     >
-                        <span className={`material-symbols-outlined text-base ${isEditing ? 'animate-spin-slow' : ''}`}>{isEditing ? 'settings_suggest' : 'dashboard_customize'}</span>
+                        <span className={`material-symbols-outlined text-base ${isEditing ? 'animate-spin-slow drop-shadow-glow' : ''}`}>{isEditing ? 'settings_suggest' : 'dashboard_customize'}</span>
                         {isEditing ? 'Confirm Setup' : 'Tactical Editor'}
                     </button>
                 </div>

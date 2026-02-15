@@ -173,9 +173,11 @@ export const TradeProvider = ({ children }) => {
     const isSyncingRef = useRef(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [dailyJournals, setDailyJournals] = useState([]);
+    const [weeklySummaries, setWeeklySummaries] = useState([]);
     const [friends, setFriends] = useState([]);
     const [friendRequests, setFriendRequests] = useState([]);
     const [isDailyJournalOpen, setIsDailyJournalOpen] = useState(false);
+    const [isWeeklySummaryOpen, setIsWeeklySummaryOpen] = useState(false);
     const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
 
     // Schema Capabilities Detection
@@ -676,7 +678,8 @@ export const TradeProvider = ({ children }) => {
             loadAccounts(),
             loadPillColors(),
             loadCopyGroups(),
-            loadDailyJournals()
+            loadDailyJournals(),
+            loadWeeklySummaries()
         ]);
 
         // 2. Load Network Data (Sequential to prevent congestion)
@@ -820,6 +823,25 @@ export const TradeProvider = ({ children }) => {
         });
         if (result.success) {
             await loadDailyJournals();
+            scheduleCloudSync();
+            return true;
+        }
+        return false;
+    };
+    const loadWeeklySummaries = async () => {
+        if (!window.electron) return;
+        const result = await window.electron.ipcRenderer.invoke('db-get-weekly-summaries', user?.id);
+        if (result.success) setWeeklySummaries(result.data);
+    };
+
+    const saveWeeklySummary = async (summary) => {
+        if (!window.electron) return false;
+        const result = await window.electron.ipcRenderer.invoke('db-save-weekly-summary', {
+            ...summary,
+            user_id: user?.id
+        });
+        if (result.success) {
+            await loadWeeklySummaries();
             scheduleCloudSync();
             return true;
         }
@@ -1424,6 +1446,7 @@ export const TradeProvider = ({ children }) => {
             dateFilter, setDateFilter,
             analyticsFilters, setAnalyticsFilters,
             dailyJournals, saveDailyJournal, isDailyJournalOpen, setIsDailyJournalOpen,
+            weeklySummaries, saveWeeklySummary, isWeeklySummaryOpen, setIsWeeklySummaryOpen,
             friends, friendRequests, sendFriendRequest, acceptFriendRequest, removeFriend, loadFriends,
             formatPnL, formatCurrency, t,
             syncProfileToCloud,

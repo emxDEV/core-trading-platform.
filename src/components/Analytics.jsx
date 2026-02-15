@@ -7,7 +7,7 @@ import {
 import { useData } from '../context/TradeContext';
 
 const Analytics = () => {
-    const { filteredTrades: trades, accounts, analyticsFilters, setAnalyticsFilters, formatCurrency } = useData();
+    const { filteredTrades: trades, allTrades, accounts, analyticsFilters, setAnalyticsFilters, formatCurrency } = useData();
 
     useEffect(() => {
         console.log('Analytics Component Mounted');
@@ -253,14 +253,13 @@ const Analytics = () => {
                         <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={useMemo(() => {
-                                    const { allTrades } = useData();
                                     const sorted = [...allTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
                                     let cum = 0;
                                     return sorted.map(t => {
                                         cum += (t.pnl || 0);
                                         return { date: new Date(t.date).toLocaleDateString(), pnl: cum };
                                     });
-                                }, [trades])}>
+                                }, [allTrades])}>
                                     <defs>
                                         <linearGradient id="colorGlobal" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />

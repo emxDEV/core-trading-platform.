@@ -1,9 +1,11 @@
 import React from 'react';
 import { useData } from '../context/TradeContext';
+import { useAI } from '../context/AIContext';
 import { soundEngine } from '../utils/SoundEngine';
 
 export default function Sidebar() {
     const { isSidebarCollapsed, toggleSidebar, currentView, setCurrentView, userProfile, stats, setIsDailyJournalOpen, t, friendRequests } = useData();
+    const { setIsPanelOpen, isPanelOpen } = useAI();
 
     return (
         <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-64'} flex-shrink-0 border-r border-white/10 bg-slate-900/10 backdrop-blur-[45px] flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden relative`}>
@@ -69,27 +71,36 @@ export default function Sidebar() {
                 />
             </nav>
 
-            <div className="px-4 py-4 border-t border-slate-100 dark:border-slate-800/60 space-y-2 mb-2">
-                <NavItem
-                    icon="auto_stories"
-                    label={t('daily_journal')}
-                    active={false}
-                    isCollapsed={isSidebarCollapsed}
-                    onClick={() => {
-                        soundEngine.playClick();
-                        setIsDailyJournalOpen(true);
-                    }}
-                />
-                <NavItem
-                    icon="settings"
-                    label={t('settings')}
-                    active={currentView === 'settings'}
-                    isCollapsed={isSidebarCollapsed}
-                    onClick={() => {
-                        soundEngine.playClick();
-                        setCurrentView('settings');
-                    }}
-                />
+            <div className="px-4 py-4 border-t border-slate-100 dark:border-slate-800/60 mb-2">
+                <div className={`flex items-center gap-2 ${isSidebarCollapsed ? 'flex-col' : 'justify-between px-2'}`}>
+                    <IconButton
+                        icon="psychology"
+                        label="AI Assistant"
+                        active={isPanelOpen}
+                        onClick={() => {
+                            soundEngine.playClick();
+                            setIsPanelOpen(!isPanelOpen);
+                        }}
+                    />
+                    <IconButton
+                        icon="auto_stories"
+                        label={t('daily_journal')}
+                        active={false}
+                        onClick={() => {
+                            soundEngine.playClick();
+                            setIsDailyJournalOpen(true);
+                        }}
+                    />
+                    <IconButton
+                        icon="settings"
+                        label={t('settings')}
+                        active={currentView === 'settings'}
+                        onClick={() => {
+                            soundEngine.playClick();
+                            setCurrentView('settings');
+                        }}
+                    />
+                </div>
             </div>
 
             <div
@@ -149,6 +160,29 @@ function NavItem({ icon, label, active = false, isCollapsed, onClick }) {
                     {label}
                 </div>
             )}
+        </button>
+    );
+}
+
+function IconButton({ icon, label, active = false, onClick }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex-1 flex items-center justify-center p-3 rounded-xl transition-all duration-300 group relative
+                ${active
+                    ? 'bg-primary/10 text-primary font-bold shadow-sm shadow-primary/5'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                }
+            `}
+        >
+            <span className={`material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:scale-110 ${active ? 'fill-1' : ''}`}>
+                {icon}
+            </span>
+
+            {/* Tooltip */}
+            <div className="absolute bottom-full mb-2 px-2 py-1 bg-slate-800 text-white text-[9px] font-bold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 whitespace-nowrap z-50 border border-white/10 pointer-events-none">
+                {label}
+            </div>
         </button>
     );
 }

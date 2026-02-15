@@ -59,7 +59,17 @@ export const translations = {
         'monthly_pnl': 'Monthly P&L',
         'win_rate': 'Win Rate',
         'winning_days': 'Winning Days',
-        'visualize_performance': 'Visualize your performance on a timeline'
+        'visualize_performance': 'Visualize your performance on a timeline',
+        'weekly_protocol': 'Weekly Protocol',
+        'strategic_review': 'Strategic Review',
+        'operational_performance': 'Operational Performance',
+        'weekly_pnl': 'Weekly PNL',
+        'total_trades': 'Total Trades',
+        'peak_performance': 'Peak Performance',
+        'maximum_drawdown': 'Maximum Drawdown',
+        'weekly_reflection': 'Weekly Reflection',
+        'archive_week_protocol': 'Archive Week Protocol',
+        'share_directive': 'Share Directive'
     },
     'German': {
         'settings': 'Einstellungen',
@@ -121,7 +131,17 @@ export const translations = {
         'monthly_pnl': 'Monatlicher P&L',
         'win_rate': 'Siegquote',
         'winning_days': 'Gewinn-Tage',
-        'visualize_performance': 'Visualisieren Sie Ihre Performance auf einer Zeitachse'
+        'visualize_performance': 'Visualisieren Sie Ihre Performance auf einer Zeitachse',
+        'weekly_protocol': 'Wochenprotokoll',
+        'strategic_review': 'Strategische Rückschau',
+        'operational_performance': 'Operationelle Performance',
+        'weekly_pnl': 'Wöchentlicher P&L',
+        'total_trades': 'Gesamtanzahl Trades',
+        'peak_performance': 'Höchstleistung',
+        'maximum_drawdown': 'Maximaler Drawdown',
+        'weekly_reflection': 'Wöchentliche Reflexion',
+        'archive_week_protocol': 'Wochenprotokoll archivieren',
+        'share_directive': 'Anweisung teilen'
     },
     'Spanish': {
         'settings': 'Ajustes',
@@ -183,6 +203,16 @@ export const translations = {
         'monthly_pnl': 'P&L Mensual',
         'win_rate': 'Tasa de Ganancia',
         'winning_days': 'Días Ganadores',
-        'visualize_performance': 'Visualiza tu rendimiento en una línea de tiempo'
+        'visualize_performance': 'Visualiza tu rendimiento en una línea de tiempo',
+        'weekly_protocol': 'Protocolo Semanal',
+        'strategic_review': 'Revisión Estratégica',
+        'operational_performance': 'Rendimiento Operativo',
+        'weekly_pnl': 'P&L Semanal',
+        'total_trades': 'Trades Totales',
+        'peak_performance': 'Rendimiento Máximo',
+        'maximum_drawdown': 'Drawdown Máximo',
+        'weekly_reflection': 'Reflexión Semanal',
+        'archive_week_protocol': 'Archivar Protocolo Semanal',
+        'share_directive': 'Compartir Directiva'
     }
 };

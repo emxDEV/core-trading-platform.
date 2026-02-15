@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../context/TradeContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useAI } from '../context/AIContext';
 import { useState } from 'react';
 
 import lucidLogo from '../assets/firms/lucid_trading.png';
@@ -36,6 +37,7 @@ const COLOR_MAP = {
 
 export default function RecentTrades() {
     const { filteredTrades, deleteTrade, undoDeleteTrade, openModal, getPillColor, formatPnL, accounts, appSettings } = useData();
+    const { analyzeTrade } = useAI();
     const { confirm, showSuccess } = useNotifications();
 
     const handleDelete = async (trade) => {
@@ -172,6 +174,13 @@ export default function RecentTrades() {
                                             title="Modify Entry"
                                         >
                                             <span className="material-symbols-outlined text-base">edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => analyzeTrade(trade)}
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-purple-500 border border-transparent hover:border-purple-500/20 transition-all active:scale-90"
+                                            title="Neural Deep-Dive"
+                                        >
+                                            <span className="material-symbols-outlined text-base">psychology</span>
                                         </button>
                                         <button
                                             onClick={() => handleDelete(trade)}

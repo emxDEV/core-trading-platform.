@@ -127,7 +127,7 @@ export default function OverviewStats() {
                         <AnimatedNumber
                             value={filteredStats.totalPnL}
                             formatter={(n) => formatPnL(n, filteredStats.totalCapital)}
-                            className={`text-6xl font-black tracking-tighter italic leading-none transition-transform duration-700 group-hover/pnl:scale-110 drop-shadow-2xl ${filteredStats.totalPnL >= 0 ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : 'text-rose-400 drop-shadow-[0_0_25px_rgba(244,63,94,0.4)]'}`}
+                            className={`text-6xl font-black tracking-tighter italic leading-none transition-transform duration-700 group-hover/pnl:scale-110 drop-shadow-2xl shimmer-text ${filteredStats.totalPnL >= 0 ? 'text-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : 'text-rose-400 drop-shadow-[0_0_25px_rgba(244,63,94,0.4)]'}`}
                         />
                     )}
                     <div className="flex items-center justify-center gap-2 mt-3">

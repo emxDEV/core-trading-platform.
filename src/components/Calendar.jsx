@@ -30,6 +30,7 @@ export default function Calendar() {
         dailyJournals,
         saveDailyJournal,
         setIsDailyJournalOpen,
+        setIsWeeklySummaryOpen,
         formatCurrency,
         t,
         appSettings
@@ -134,6 +135,21 @@ export default function Calendar() {
                                         bg={selectedDayJournal?.is_completed ? 'bg-emerald-500/10' : 'bg-primary/10'}
                                         color={selectedDayJournal?.is_completed ? 'text-emerald-500' : 'text-primary'}
                                     />
+                                    <button
+                                        onClick={() => {
+                                            const d = new Date(selectedDate);
+                                            const day = d.getDay() || 7;
+                                            const monday = new Date(d);
+                                            monday.setHours(0, 0, 0, 0);
+                                            monday.setDate(d.getDate() - (day - 1));
+                                            const weekStartStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                                            setIsWeeklySummaryOpen(weekStartStr);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-[9px] font-black text-violet-400 uppercase tracking-widest hover:bg-violet-500 hover:text-white transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                                        Weekly Protocol
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -307,9 +323,9 @@ export default function Calendar() {
                                                     <div>
                                                         {trade.trade_session || trade.session ? (
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-widest ${(trade.trade_session || trade.session) === 'Asia' ? COLOR_MAP.rose :
-                                                                    (trade.trade_session || trade.session) === 'London' ? COLOR_MAP.sky :
-                                                                        (trade.trade_session || trade.session) === 'New York' ? COLOR_MAP.emerald :
-                                                                            'text-slate-400 border-white/5'
+                                                                (trade.trade_session || trade.session) === 'London' ? COLOR_MAP.sky :
+                                                                    (trade.trade_session || trade.session) === 'New York' ? COLOR_MAP.emerald :
+                                                                        'text-slate-400 border-white/5'
                                                                 }`}>
                                                                 {trade.trade_session || trade.session}
                                                             </span>
