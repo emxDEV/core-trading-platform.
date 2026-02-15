@@ -120,7 +120,19 @@ function setupAutoUpdater() {
     });
     autoUpdater.on('error', (err) => {
         console.error('Updater Error:', err);
-        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', { type: 'error', message: err.message, error: err }));
+        let friendlyMessage = err.message;
+
+        if (process.platform === 'darwin' && err.message.includes('Code signature')) {
+            friendlyMessage = "Security Block: This update cannot be applied automatically because the app is not digitally signed. Please download the latest version manually from GitHub.";
+        } else if (err.message.includes('net::ERR_INTERNET_DISCONNECTED')) {
+            friendlyMessage = "Update check failed: No tactical connection detected.";
+        }
+
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send('updater-event', {
+            type: 'error',
+            message: friendlyMessage,
+            error: err
+        }));
     });
     autoUpdater.checkForUpdatesAndNotify();
 }
